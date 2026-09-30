@@ -1,5 +1,5 @@
 import { Card, Flex, FloatButton } from 'antd'
-import { PlusOutlined, TranslationOutlined } from '@ant-design/icons'
+import { AudioOutlined, PlusOutlined, TranslationOutlined } from '@ant-design/icons'
 import type { ReactNode } from 'react'
 
 export default function Workspace(): ReactNode {
@@ -7,7 +7,7 @@ export default function Workspace(): ReactNode {
     <>
       <Flex gap="small" wrap style={{ margin: 10 }}>
         <Card>
-          <p>Card content</p>
+          <p>任务一</p>
         </Card>
         <Card style={{ width: 300 }}>
           <p>Card content</p>
@@ -15,6 +15,7 @@ export default function Workspace(): ReactNode {
       </Flex>
       <FloatButton.Group icon={<PlusOutlined />} type="primary" trigger="click">
         <FloatButton
+          icon={<AudioOutlined />}
           tooltip={{
             title: '音频提取',
             color: 'blue',

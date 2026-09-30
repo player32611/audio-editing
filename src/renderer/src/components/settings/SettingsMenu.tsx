@@ -54,7 +54,7 @@ const items: Required<MenuProps>['items'][number][] = [
 ]
 
 export default function SettingsMenu(): ReactNode {
-  const [stateOpenKeys, setStateOpenKeys] = useState(['2', '23'])
+  const [stateOpenKeys, setStateOpenKeys] = useState<string[]>([])
   const navigate = useNavigate()
 
   const getLevelKeys = (items1: LevelKeysProps[]): Record<string, number> => {

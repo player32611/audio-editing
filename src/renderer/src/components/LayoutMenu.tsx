@@ -9,20 +9,19 @@ export default function LayoutMenu(): ReactNode {
   const items: ItemType[] = [
     {
       label: <Link to="/">主页</Link>,
-      key: '/',
+      key: '',
       icon: <HomeOutlined />
     },
     {
       label: <Link to="/workspace">工作台</Link>,
-      key: '/workspace',
+      key: 'workspace',
       icon: <AppstoreOutlined />
     },
     {
       label: <Link to="/settings">设置</Link>,
-      key: '/settings',
+      key: 'settings',
       icon: <SettingOutlined />
     }
   ]
-
-  return <Menu mode="horizontal" items={items} selectedKeys={[location.pathname]} />
+  return <Menu mode="horizontal" items={items} selectedKeys={[location.pathname.split('/')[1]]} />
 }
