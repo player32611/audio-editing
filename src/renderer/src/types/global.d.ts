@@ -8,5 +8,3 @@ declare global {
     }
   }
 }
-
-export type Theme = 'dark' | 'light' | 'system'

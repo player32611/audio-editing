@@ -2,9 +2,12 @@ import { app, shell, BrowserWindow, ipcMain, nativeTheme } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import type { Theme } from '../renderer/src/types/index'
+import Store from 'electron-store'
+import { STORE_KEY } from '../shared/constants'
+import type { Theme } from '../shared/type'
 
 let mainWindow: BrowserWindow | null = null
+const store = new Store<Record<string, Theme>>()
 
 function createWindow(): void {
   // Create the browser window.
@@ -22,6 +25,8 @@ function createWindow(): void {
 
   mainWindow.on('ready-to-show', () => {
     mainWindow?.show()
+    mainWindow?.webContents.send('theme:changed', store.get(STORE_KEY.THEME) === 'dark')
+    nativeTheme.themeSource = store.get(STORE_KEY.THEME)
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -36,15 +41,11 @@ function createWindow(): void {
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
-
-  nativeTheme.on('updated', () => {
-    mainWindow?.webContents.send('theme:set', nativeTheme.themeSource)
-  })
 }
 
 ipcMain.handle('theme:set', (_, theme: Theme) => {
   nativeTheme.themeSource = theme
-
+  store.set(STORE_KEY.THEME, theme)
   return nativeTheme.themeSource
 })
 
