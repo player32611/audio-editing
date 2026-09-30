@@ -1,20 +1,21 @@
 import { Outlet } from 'react-router'
-import { HomeMenu } from './components/home/HomeMenu'
-import { ThemeProvider } from './components/providers/ThemeProvider'
+import { Layout } from 'antd'
+import LayoutMenu from './components/LayoutMenu'
+import ThemeProvider from './components/providers/ThemeProvider'
+
+const { Header, Content } = Layout
 
 function App(): React.JSX.Element {
-  const toggleDarkMode = async (): Promise<void> => {
-    await window.darkMode.toggle()
-  }
-
   return (
     <ThemeProvider>
-      <HomeMenu />
-      <button id="toggle-dark-mode" onClick={toggleDarkMode}>
-        Toggle Dark Mode
-      </button>
-      <button id="reset-to-system">Reset to System Theme</button>
-      <Outlet />
+      <Layout>
+        <Header style={{ padding: 0 }}>
+          <LayoutMenu />
+        </Header>
+        <Content style={{ flex: 1 }}>
+          <Outlet />
+        </Content>
+      </Layout>
     </ThemeProvider>
   )
 }

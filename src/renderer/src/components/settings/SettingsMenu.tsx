@@ -1,6 +1,6 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router'
 import { Menu } from 'antd'
-import { AppstoreOutlined, MailOutlined, SettingOutlined } from '@ant-design/icons'
 import type { ReactNode } from 'react'
 import type { MenuProps } from 'antd'
 
@@ -11,19 +11,12 @@ interface LevelKeysProps {
 
 const items: Required<MenuProps>['items'][number][] = [
   {
-    key: '1',
-    icon: <MailOutlined />,
-    label: 'Navigation One',
-    children: [
-      { key: '11', label: 'Option 1' },
-      { key: '12', label: 'Option 2' },
-      { key: '13', label: 'Option 3' },
-      { key: '14', label: 'Option 4' }
-    ]
+    key: 'system',
+    label: '系统',
+    children: [{ key: '/settings/appearance', label: '外观' }]
   },
   {
     key: '2',
-    icon: <AppstoreOutlined />,
     label: 'Navigation Two',
     children: [
       { key: '21', label: 'Option 1' },
@@ -50,7 +43,6 @@ const items: Required<MenuProps>['items'][number][] = [
   },
   {
     key: '3',
-    icon: <SettingOutlined />,
     label: 'Navigation Three',
     children: [
       { key: '31', label: 'Option 1' },
@@ -61,8 +53,9 @@ const items: Required<MenuProps>['items'][number][] = [
   }
 ]
 
-export const SettingsMenu = (): ReactNode => {
+export default function SettingsMenu(): ReactNode {
   const [stateOpenKeys, setStateOpenKeys] = useState(['2', '23'])
+  const navigate = useNavigate()
 
   const getLevelKeys = (items1: LevelKeysProps[]): Record<string, number> => {
     const key: Record<string, number> = {}
@@ -110,7 +103,8 @@ export const SettingsMenu = (): ReactNode => {
         mode="inline"
         openKeys={stateOpenKeys}
         onOpenChange={onOpenChange}
-        style={{ width: 256 }}
+        onClick={(e) => navigate(e.key)}
+        style={{ width: 192, height: '100%' }}
       />
     </>
   )

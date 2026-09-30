@@ -3,6 +3,7 @@ import { createBrowserRouter } from 'react-router'
 import App from '../App'
 import Settings from '../pages/Settings'
 import Workspace from '@renderer/pages/Workspace'
+import Appearance from '@renderer/pages/Settings/Systems/Appearance'
 
 const router = createBrowserRouter([
   {
@@ -10,12 +11,18 @@ const router = createBrowserRouter([
     element: <App />,
     children: [
       {
-        path: '/workspace',
+        path: 'workspace',
         element: <Workspace />
       },
       {
-        path: '/settings',
-        element: <Settings />
+        path: 'settings',
+        element: <Settings />,
+        children: [
+          {
+            path: 'appearance',
+            element: <Appearance />
+          }
+        ]
       }
     ]
   }

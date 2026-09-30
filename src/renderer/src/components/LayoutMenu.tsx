@@ -4,27 +4,25 @@ import { AppstoreOutlined, HomeOutlined, SettingOutlined } from '@ant-design/ico
 import type { ReactNode } from 'react'
 import type { ItemType } from 'antd/es/menu/interface'
 
-export const HomeMenu = (): ReactNode => {
+export default function LayoutMenu(): ReactNode {
   const location = useLocation()
   const items: ItemType[] = [
     {
-      label: <Link to="/">Home</Link>,
+      label: <Link to="/">主页</Link>,
       key: '/',
       icon: <HomeOutlined />
     },
     {
-      label: <Link to="/workspace">Workspace</Link>,
+      label: <Link to="/workspace">工作台</Link>,
       key: '/workspace',
       icon: <AppstoreOutlined />
     },
     {
-      label: <Link to="/settings">Setting</Link>,
+      label: <Link to="/settings">设置</Link>,
       key: '/settings',
       icon: <SettingOutlined />
     }
   ]
-
-  console.log(location.pathname)
 
   return <Menu mode="horizontal" items={items} selectedKeys={[location.pathname]} />
 }

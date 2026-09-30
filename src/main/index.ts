@@ -2,6 +2,7 @@ import { app, shell, BrowserWindow, ipcMain, nativeTheme } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import type { Theme } from '../renderer/src/types/index'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -37,29 +38,26 @@ function createWindow(): void {
   }
 
   nativeTheme.on('updated', () => {
-    mainWindow?.webContents.send('dark-mode:changed', nativeTheme.shouldUseDarkColors)
+    mainWindow?.webContents.send('theme:set', nativeTheme.themeSource)
   })
 }
 
-ipcMain.handle('dark-mode:toggle', () => {
-  if (nativeTheme.shouldUseDarkColors) {
-    nativeTheme.themeSource = 'light'
-  } else {
-    nativeTheme.themeSource = 'dark'
-  }
+ipcMain.handle('theme:set', (_, theme: Theme) => {
+  nativeTheme.themeSource = theme
+
+  return nativeTheme.themeSource
+})
+
+ipcMain.handle('theme:isDark', () => {
   return nativeTheme.shouldUseDarkColors
 })
 
-ipcMain.handle('dark-mode:system', () => {
-  nativeTheme.themeSource = 'system'
-})
-
-ipcMain.handle('dark-mode:get', () => {
-  return nativeTheme.shouldUseDarkColors
+ipcMain.handle('theme:get', () => {
+  return nativeTheme.themeSource
 })
 
 nativeTheme.on('updated', () => {
-  mainWindow?.webContents.send('dark-mode:changed', nativeTheme.shouldUseDarkColors)
+  mainWindow?.webContents.send('theme:changed', nativeTheme.shouldUseDarkColors)
 })
 
 // This method will be called when Electron has finished

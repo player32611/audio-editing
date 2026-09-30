@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
+import type { Theme } from '../renderer/src/types/index'
 
 // Custom APIs for renderer
 const api = {}
@@ -11,20 +12,18 @@ if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld('electron', electronAPI)
     contextBridge.exposeInMainWorld('api', api)
-    contextBridge.exposeInMainWorld('darkMode', {
-      toggle: () => ipcRenderer.invoke('dark-mode:toggle'),
-      system: () => ipcRenderer.invoke('dark-mode:system'),
-      get: () => ipcRenderer.invoke('dark-mode:get'),
+    contextBridge.exposeInMainWorld('theme', {
+      set: (theme: Theme) => ipcRenderer.invoke('theme:set', theme),
+      get: () => ipcRenderer.invoke('theme:get'),
+      isDark: () => ipcRenderer.invoke('theme:isDark'),
       onChanged: (callback: (isDark: boolean) => void) => {
         const listener = (_event: Electron.IpcRendererEvent, isDark: boolean): void => {
           callback(isDark)
         }
 
-        ipcRenderer.on('dark-mode:changed', listener)
+        ipcRenderer.on('theme:changed', listener)
 
-        return () => {
-          ipcRenderer.removeListener('dark-mode:changed', listener)
-        }
+        return () => ipcRenderer.removeListener('theme:changed', listener)
       }
     })
   } catch (error) {

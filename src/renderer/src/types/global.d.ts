@@ -1,12 +1,12 @@
-export {}
-
 declare global {
   interface Window {
-    darkMode: {
-      toggle: () => Promise<boolean>
-      system: () => Promise<boolean>
-      get: () => Promise<boolean>
+    theme: {
+      set: (theme: Theme) => Promise<Theme>
+      get: () => Promise<Theme>
+      isDark: () => Promise<boolean>
       onChanged: (callback: (isDark: boolean) => void) => () => void
     }
   }
 }
+
+export type Theme = 'dark' | 'light' | 'system'
