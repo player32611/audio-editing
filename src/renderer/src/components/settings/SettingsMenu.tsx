@@ -13,42 +13,9 @@ const items: Required<MenuProps>['items'][number][] = [
   {
     key: 'system',
     label: '系统',
-    children: [{ key: '/settings/appearance', label: '外观' }]
-  },
-  {
-    key: '2',
-    label: 'Navigation Two',
     children: [
-      { key: '21', label: 'Option 1' },
-      { key: '22', label: 'Option 2' },
-      {
-        key: '23',
-        label: 'Submenu',
-        children: [
-          { key: '231', label: 'Option 1' },
-          { key: '232', label: 'Option 2' },
-          { key: '233', label: 'Option 3' }
-        ]
-      },
-      {
-        key: '24',
-        label: 'Submenu 2',
-        children: [
-          { key: '241', label: 'Option 1' },
-          { key: '242', label: 'Option 2' },
-          { key: '243', label: 'Option 3' }
-        ]
-      }
-    ]
-  },
-  {
-    key: '3',
-    label: 'Navigation Three',
-    children: [
-      { key: '31', label: 'Option 1' },
-      { key: '32', label: 'Option 2' },
-      { key: '33', label: 'Option 3' },
-      { key: '34', label: 'Option 4' }
+      { key: '/settings/appearance', label: '外观' },
+      { key: '/settings/file', label: '文件' }
     ]
   }
 ]

@@ -11,6 +11,8 @@ files:
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
 asarUnpack:
   - resources/**
+  - node_modules/@ffmpeg-installer/**
+  - node_modules/@ffprobe-installer/**
 win:
   executableName: audio-editing
 nsis:

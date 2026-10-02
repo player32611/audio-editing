@@ -1,10 +1,14 @@
-import { app, shell, BrowserWindow, ipcMain, nativeTheme } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, nativeTheme, dialog } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import Store from 'electron-store'
 import { STORE_KEY } from '../shared/constants'
-import type { Theme } from '../shared/type'
+import type { Path, Theme } from '../shared/type'
+import { setupFfmpeg } from './ffmpeg'
+
+// Make the bundled FFmpeg/FFprobe available to @sellmind/video-editor-core.
+setupFfmpeg()
 
 let mainWindow: BrowserWindow | null = null
 const store = new Store<Record<string, Theme>>()
@@ -43,6 +47,19 @@ function createWindow(): void {
   }
 }
 
+ipcMain.handle('api:selectFolder', async (_, defaultPath) => {
+  const { canceled, filePaths } = await dialog.showOpenDialog({
+    properties: ['openDirectory'], // 关键：允许选择文件夹
+    defaultPath: defaultPath, // 可选：指定默认打开路径
+    title: '请选择一个文件夹'
+  })
+
+  if (canceled || filePaths.length === 0) {
+    return null // 用户取消
+  }
+  return filePaths[0] // 返回选中的文件夹路径
+})
+
 ipcMain.handle('theme:set', (_, theme: Theme) => {
   nativeTheme.themeSource = theme
   store.set(STORE_KEY.THEME, theme)
@@ -55,6 +72,15 @@ ipcMain.handle('theme:isDark', () => {
 
 ipcMain.handle('theme:get', () => {
   return nativeTheme.themeSource
+})
+
+ipcMain.handle('path:set', (_, type: Path, path: string) => {
+  store.set(`${STORE_KEY.PATH}-${type}`, path)
+  return store.get(`${STORE_KEY.PATH}-${type}`)
+})
+
+ipcMain.handle('path:get', (_, type: Path) => {
+  return store.get(`${STORE_KEY.PATH}-${type}`)
 })
 
 nativeTheme.on('updated', () => {

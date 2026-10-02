@@ -1,6 +1,6 @@
 import { Select, Space } from 'antd'
 import { useState, useEffect, type ReactNode } from 'react'
-import type { Theme } from '@renderer/types'
+import type { Theme } from '../../../../../shared/type'
 
 export default function Appearance(): ReactNode {
   const [theme, setTheme] = useState<Theme>()
@@ -15,20 +15,18 @@ export default function Appearance(): ReactNode {
   }, [])
 
   return (
-    <>
-      <Space>
-        主题:
-        <Select
-          value={theme}
-          style={{ width: 120 }}
-          onChange={handleChange}
-          options={[
-            { value: 'dark', label: '深色主题' },
-            { value: 'light', label: '浅色主题' },
-            { value: 'system', label: '跟随系统' }
-          ]}
-        />
-      </Space>
-    </>
+    <Space>
+      主题:
+      <Select
+        value={theme}
+        style={{ width: 120 }}
+        onChange={handleChange}
+        options={[
+          { value: 'dark', label: '深色主题' },
+          { value: 'light', label: '浅色主题' },
+          { value: 'system', label: '跟随系统' }
+        ]}
+      />
+    </Space>
   )
 }

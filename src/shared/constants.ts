@@ -1,3 +1,4 @@
 export const STORE_KEY = {
-  THEME: 'theme'
+  THEME: 'theme',
+  PATH: 'path'
 }

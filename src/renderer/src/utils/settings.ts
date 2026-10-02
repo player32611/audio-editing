@@ -7,6 +7,9 @@ export const getBreadcrumb = (url: string): { title: string }[] => {
         res.push({ title: '系统' })
         res.push({ title: '外观' })
         break
+      case 'file':
+        res.push({ title: '系统' })
+        res.push({ title: '文件' })
     }
   })
   return res

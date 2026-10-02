@@ -1,9 +1,11 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
-import type { Theme } from '../shared/type'
+import type { Path, Theme } from '../shared/type'
 
 // Custom APIs for renderer
-const api = {}
+const api = {
+  selectFolder: (defaultPath: string) => ipcRenderer.invoke('api:selectFolder', defaultPath)
+}
 
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise
@@ -26,12 +28,14 @@ if (process.contextIsolated) {
         return () => ipcRenderer.removeListener('theme:changed', listener)
       }
     })
+    contextBridge.exposeInMainWorld('path', {
+      set: (type: Path, path: string) => ipcRenderer.invoke('path:set', type, path),
+      get: (type: Path) => ipcRenderer.invoke('path:get', type)
+    })
   } catch (error) {
     console.error(error)
   }
 } else {
-  // @ts-ignore (define in dts)
   window.electron = electronAPI
-  // @ts-ignore (define in dts)
   window.api = api
 }

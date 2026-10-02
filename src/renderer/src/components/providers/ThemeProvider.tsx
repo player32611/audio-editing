@@ -1,5 +1,6 @@
 import { ConfigProvider, theme } from 'antd'
 import { ReactNode, useEffect, useState } from 'react'
+import zhCN from 'antd/locale/zh_CN'
 
 export default function ThemeProvider({ children }: { children: ReactNode }): ReactNode {
   const [useDark, setUseDark] = useState<boolean>()
@@ -16,6 +17,7 @@ export default function ThemeProvider({ children }: { children: ReactNode }): Re
 
   return (
     <ConfigProvider
+      locale={zhCN}
       theme={{
         algorithm: useDark ? theme.darkAlgorithm : theme.defaultAlgorithm,
         components: {
