@@ -1,5 +1,14 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
-import { Theme, Path } from '../shared/type'
+import {
+  Theme,
+  Path,
+  Database,
+  StatusTable,
+  WorkHistoryUnion,
+  WorkHistoryInput,
+  WorkType,
+  WorkStatus
+} from '../shared/type'
 import type { OpenDialogOptions } from 'electron'
 import { GetVoiceOptions } from '@sellmind/video-editor-core'
 
@@ -24,6 +33,13 @@ declare global {
     }
     sellmind: {
       getVoice: (options: GetVoiceOptions) => Promise<void>
+    }
+    database: {
+      selectAll: (database: Database) => Promise<StatusTable[]>
+      selectStatus: (name: WorkStatus) => Promise<number>
+      selectType: (name: WorkType) => Promise<number>
+      selectWorkHistory: () => Promise<WorkHistoryUnion[]>
+      insertWorkHistory: (data: WorkHistoryInput) => Promise<void>
     }
   }
 }

@@ -54,7 +54,19 @@ export default function AudioExtract(): ReactNode {
   }, [form])
 
   const onFinish: FormProps<FieldType>['onFinish'] = useCallback(
-    (values) => {
+    async (values) => {
+      const typeId = await window.database.selectType('汉英转译')
+      const statusId = await window.database.selectStatus('待处理')
+      console.log(typeId, statusId)
+      window.database
+        .insertWorkHistory({
+          name: `${values.outputName}.${values.audioFormat}`,
+          time: new Date().toISOString(),
+          path: values.outputPath,
+          typeId,
+          statusId
+        })
+        .then((res) => console.log(res))
       window.sellmind
         .getVoice({
           inputVideo: values.inputVideo,

@@ -1,6 +1,14 @@
-import { app } from 'electron'
+import { app, ipcMain } from 'electron'
 import { join } from 'path'
 import Database from 'better-sqlite3'
+import {
+  Database as DatabaseType,
+  StatusTable,
+  TypeTable,
+  WorkHistoryInput,
+  WorkStatus,
+  WorkType
+} from '../shared/type'
 
 let db: Database.Database | null = null
 
@@ -22,7 +30,6 @@ export function initDatabase(): Database.Database {
   return db
 }
 
-/** 获取已初始化的数据库连接；未初始化时抛出错误。 */
 export function getDatabase(): Database.Database {
   if (!db) throw new Error('数据库尚未初始化')
 
@@ -96,3 +103,77 @@ const createTable = (): void => {
     WHERE NOT EXISTS (SELECT 1 FROM status WHERE name = '已取消');
     `)
 }
+
+ipcMain.handle('database:selectAll', (_, database: DatabaseType) => {
+  if (!db) throw new Error('数据库尚未初始化')
+
+  switch (database) {
+    case 'status':
+      return db.prepare('SELECT * FROM status').all()
+    case 'type':
+      return db.prepare('SELECT * FROM type').all()
+    case 'work_history':
+      return db.prepare('SELECT * FROM work_history').all()
+  }
+})
+
+ipcMain.handle('database:selectStatus', (_, name: WorkStatus): number => {
+  if (!db) throw new Error('数据库尚未初始化')
+
+  const res = db.prepare<string, StatusTable>('SELECT id FROM status WHERE name = ?').get(name)
+
+  return res?.id || -1
+})
+
+ipcMain.handle('database:selectType', (_, name: WorkType): number => {
+  if (!db) throw new Error('数据库尚未初始化')
+
+  const res = db.prepare<string, TypeTable>('SELECT id FROM type WHERE name = ?').get(name)
+
+  return res?.id || -1
+})
+
+ipcMain.handle('database:selectWorkHistory', () => {
+  if (!db) throw new Error('数据库尚未初始化')
+
+  return db
+    .prepare(
+      `
+        SELECT
+        wh.id           AS id,
+        wh.type_id      AS typeId,
+        t.name          AS typeName,
+        wh.name         AS name,
+        wh.time         AS time,
+        wh.status_id    AS statusId,
+        s.name          AS statusName,
+        wh.path         AS path
+        FROM work_history wh
+        LEFT JOIN type   t ON wh.type_id   = t.id
+        LEFT JOIN status s ON wh.status_id = s.id
+        ORDER BY wh.time DESC;
+      `
+    )
+    .all()
+})
+
+ipcMain.handle('database:insertWorkHistory', (_, data: WorkHistoryInput) => {
+  if (!db) throw new Error('数据库尚未初始化')
+
+  const stmt = db.prepare(
+    `
+      INSERT INTO work_history (type_id, name, time, status_id, path)
+      VALUES (?, ?, ?, ?, ?)
+    `
+  )
+
+  const result = stmt.run(
+    data.typeId,
+    data.name,
+    data.time || new Date().toISOString(),
+    data.statusId,
+    data.path
+  )
+
+  return result.lastInsertRowid
+})

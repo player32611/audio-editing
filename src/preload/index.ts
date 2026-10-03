@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer, OpenDialogOptions } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
-import type { Path, Theme } from '../shared/type'
+import type { Database, Path, Theme, WorkHistoryInput, WorkStatus, WorkType } from '../shared/type'
 import { GetVoiceOptions } from '@sellmind/video-editor-core'
 
 // Custom APIs for renderer
@@ -31,6 +31,15 @@ const sellmind = {
   getVoice: (options: GetVoiceOptions) => ipcRenderer.invoke('sellmind:getVoice', options)
 }
 
+const database = {
+  selectAll: (database: Database) => ipcRenderer.invoke('database:selectAll', database),
+  selectStatus: (name: WorkStatus) => ipcRenderer.invoke('database:selectStatus', name),
+  selectType: (name: WorkType) => ipcRenderer.invoke('database:selectType', name),
+  selectWorkHistory: () => ipcRenderer.invoke('database:selectWorkHistory'),
+  insertWorkHistory: (data: WorkHistoryInput) =>
+    ipcRenderer.invoke('database:insertWorkHistory', data)
+}
+
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise
 // just add to the DOM global.
@@ -41,6 +50,7 @@ if (process.contextIsolated) {
     contextBridge.exposeInMainWorld('theme', theme)
     contextBridge.exposeInMainWorld('path', path)
     contextBridge.exposeInMainWorld('sellmind', sellmind)
+    contextBridge.exposeInMainWorld('database', database)
   } catch (error) {
     console.error(error)
   }
@@ -50,4 +60,5 @@ if (process.contextIsolated) {
   window.theme = theme
   window.path = path
   window.sellmind = sellmind
+  window.database = database
 }
