@@ -1,8 +1,17 @@
-import { app, shell, BrowserWindow, ipcMain, nativeTheme, dialog } from 'electron'
+import {
+  app,
+  shell,
+  BrowserWindow,
+  ipcMain,
+  nativeTheme,
+  dialog,
+  OpenDialogOptions
+} from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import Store from 'electron-store'
+import { getVoice, GetVoiceOptions } from '@sellmind/video-editor-core'
 import { STORE_KEY } from '../shared/constants'
 import type { Path, Theme } from '../shared/type'
 import { setupFfmpeg } from './ffmpeg'
@@ -11,7 +20,7 @@ import { setupFfmpeg } from './ffmpeg'
 setupFfmpeg()
 
 let mainWindow: BrowserWindow | null = null
-const store = new Store<Record<string, Theme>>()
+const store = new Store<Record<string, string>>()
 
 function createWindow(): void {
   // Create the browser window.
@@ -30,7 +39,7 @@ function createWindow(): void {
   mainWindow.on('ready-to-show', () => {
     mainWindow?.show()
     mainWindow?.webContents.send('theme:changed', store.get(STORE_KEY.THEME) === 'dark')
-    nativeTheme.themeSource = store.get(STORE_KEY.THEME)
+    nativeTheme.themeSource = store.get(STORE_KEY.THEME) as Theme
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -47,17 +56,28 @@ function createWindow(): void {
   }
 }
 
-ipcMain.handle('api:selectFolder', async (_, defaultPath) => {
+ipcMain.handle('api:selectFolder', async (_, options: OpenDialogOptions) => {
   const { canceled, filePaths } = await dialog.showOpenDialog({
-    properties: ['openDirectory'], // 关键：允许选择文件夹
-    defaultPath: defaultPath, // 可选：指定默认打开路径
-    title: '请选择一个文件夹'
+    properties: ['openDirectory'], // 允许选择文件夹
+    title: '请选择一个文件夹',
+    ...options
   })
 
-  if (canceled || filePaths.length === 0) {
-    return null // 用户取消
-  }
+  if (canceled || filePaths.length === 0) return null // 用户取消
+
   return filePaths[0] // 返回选中的文件夹路径
+})
+
+ipcMain.handle('api:selectFile', async (_, options: OpenDialogOptions) => {
+  const { canceled, filePaths } = await dialog.showOpenDialog({
+    properties: ['openFile'],
+    title: '请选择一个文件',
+    ...options
+  })
+
+  if (canceled || filePaths.length === 0) return null
+
+  return filePaths[0]
 })
 
 ipcMain.handle('theme:set', (_, theme: Theme) => {
@@ -80,7 +100,23 @@ ipcMain.handle('path:set', (_, type: Path, path: string) => {
 })
 
 ipcMain.handle('path:get', (_, type: Path) => {
-  return store.get(`${STORE_KEY.PATH}-${type}`)
+  let res = store.get(`${STORE_KEY.PATH}-${type}`)
+  if (!res) {
+    switch (type) {
+      case 'input':
+        res = app.getPath('downloads')
+        break
+      case 'output':
+        res = app.getPath('downloads')
+        break
+    }
+    store.set(`${STORE_KEY.PATH}-${type}`, res)
+  }
+  return res
+})
+
+ipcMain.handle('sellmind:getVoice', (_, options: GetVoiceOptions) => {
+  return getVoice(options)
 })
 
 nativeTheme.on('updated', () => {

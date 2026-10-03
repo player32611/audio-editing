@@ -1,10 +1,34 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, OpenDialogOptions } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 import type { Path, Theme } from '../shared/type'
+import { GetVoiceOptions } from '@sellmind/video-editor-core'
 
 // Custom APIs for renderer
 const api = {
-  selectFolder: (defaultPath: string) => ipcRenderer.invoke('api:selectFolder', defaultPath)
+  selectFolder: (options: OpenDialogOptions) => ipcRenderer.invoke('api:selectFolder', options),
+  selectFile: (options: OpenDialogOptions) => ipcRenderer.invoke('api:selectFile', options)
+}
+
+const theme = {
+  set: (theme: Theme) => ipcRenderer.invoke('theme:set', theme),
+  get: () => ipcRenderer.invoke('theme:get'),
+  isDark: () => ipcRenderer.invoke('theme:isDark'),
+  onChanged: (callback: (isDark: boolean) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, isDark: boolean): void => callback(isDark)
+
+    ipcRenderer.on('theme:changed', listener)
+
+    return () => ipcRenderer.removeListener('theme:changed', listener)
+  }
+}
+
+const path = {
+  set: (type: Path, path: string) => ipcRenderer.invoke('path:set', type, path),
+  get: (type: Path) => ipcRenderer.invoke('path:get', type)
+}
+
+const sellmind = {
+  getVoice: (options: GetVoiceOptions) => ipcRenderer.invoke('sellmind:getVoice', options)
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to
@@ -14,28 +38,16 @@ if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld('electron', electronAPI)
     contextBridge.exposeInMainWorld('api', api)
-    contextBridge.exposeInMainWorld('theme', {
-      set: (theme: Theme) => ipcRenderer.invoke('theme:set', theme),
-      get: () => ipcRenderer.invoke('theme:get'),
-      isDark: () => ipcRenderer.invoke('theme:isDark'),
-      onChanged: (callback: (isDark: boolean) => void) => {
-        const listener = (_event: Electron.IpcRendererEvent, isDark: boolean): void => {
-          callback(isDark)
-        }
-
-        ipcRenderer.on('theme:changed', listener)
-
-        return () => ipcRenderer.removeListener('theme:changed', listener)
-      }
-    })
-    contextBridge.exposeInMainWorld('path', {
-      set: (type: Path, path: string) => ipcRenderer.invoke('path:set', type, path),
-      get: (type: Path) => ipcRenderer.invoke('path:get', type)
-    })
+    contextBridge.exposeInMainWorld('theme', theme)
+    contextBridge.exposeInMainWorld('path', path)
+    contextBridge.exposeInMainWorld('sellmind', sellmind)
   } catch (error) {
     console.error(error)
   }
 } else {
   window.electron = electronAPI
   window.api = api
+  window.theme = theme
+  window.path = path
+  window.sellmind = sellmind
 }
