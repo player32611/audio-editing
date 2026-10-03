@@ -7,20 +7,21 @@ import {
   dialog,
   OpenDialogOptions
 } from 'electron'
-import { join } from 'path'
+import { join } from 'node:path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import Store from 'electron-store'
 import { getVoice, GetVoiceOptions } from '@sellmind/video-editor-core'
 import { STORE_KEY } from '../shared/constants'
-import type { Path, Theme } from '../shared/type'
+import type { Theme } from '../shared/type'
 import { setupFfmpeg } from './ffmpeg'
+import { initDatabase } from './database'
+import { initStore } from './store'
 
 // Make the bundled FFmpeg/FFprobe available to @sellmind/video-editor-core.
 setupFfmpeg()
 
 let mainWindow: BrowserWindow | null = null
-const store = new Store<Record<string, string>>()
+const store = initStore()
 
 function createWindow(): void {
   // Create the browser window.
@@ -80,39 +81,12 @@ ipcMain.handle('api:selectFile', async (_, options: OpenDialogOptions) => {
   return filePaths[0]
 })
 
-ipcMain.handle('theme:set', (_, theme: Theme) => {
-  nativeTheme.themeSource = theme
-  store.set(STORE_KEY.THEME, theme)
-  return nativeTheme.themeSource
-})
-
 ipcMain.handle('theme:isDark', () => {
   return nativeTheme.shouldUseDarkColors
 })
 
 ipcMain.handle('theme:get', () => {
   return nativeTheme.themeSource
-})
-
-ipcMain.handle('path:set', (_, type: Path, path: string) => {
-  store.set(`${STORE_KEY.PATH}-${type}`, path)
-  return store.get(`${STORE_KEY.PATH}-${type}`)
-})
-
-ipcMain.handle('path:get', (_, type: Path) => {
-  let res = store.get(`${STORE_KEY.PATH}-${type}`)
-  if (!res) {
-    switch (type) {
-      case 'input':
-        res = app.getPath('downloads')
-        break
-      case 'output':
-        res = app.getPath('downloads')
-        break
-    }
-    store.set(`${STORE_KEY.PATH}-${type}`, res)
-  }
-  return res
 })
 
 ipcMain.handle('sellmind:getVoice', (_, options: GetVoiceOptions) => {
@@ -137,8 +111,7 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  // IPC test
-  ipcMain.on('ping', () => console.log('pong'))
+  initDatabase()
 
   createWindow()
 
