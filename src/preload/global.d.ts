@@ -7,10 +7,11 @@ import {
   WorkHistoryUnion,
   WorkHistoryInput,
   WorkType,
-  WorkStatus
+  WorkStatus,
+  WorkHistoryTable
 } from '../shared/type'
-import type { OpenDialogOptions } from 'electron'
 import { GetVoiceOptions } from '@sellmind/video-editor-core'
+import type { OpenDialogOptions } from 'electron'
 
 export {}
 
@@ -18,8 +19,9 @@ declare global {
   interface Window {
     electron: ElectronAPI
     api: {
-      selectFolder: (options: OpenDialogOptions) => Promise<string>
       selectFile: (options: OpenDialogOptions) => Promise<string>
+      selectFolder: (options: OpenDialogOptions) => Promise<string>
+      openFolder: (path: string) => Promise<string>
     }
     theme: {
       set: (theme: Theme) => Promise<Theme>
@@ -39,7 +41,16 @@ declare global {
       selectStatus: (name: WorkStatus) => Promise<number>
       selectType: (name: WorkType) => Promise<number>
       selectWorkHistory: () => Promise<WorkHistoryUnion[]>
-      insertWorkHistory: (data: WorkHistoryInput) => Promise<void>
+      insertWorkHistory: (data: WorkHistoryInput) => Promise<number>
+      updateWorkHistory: (data: WorkHistoryTable) => Promise<void>
+      deleteAll: (database: Database) => Promise<void>
+      deleteById: (database: Database, id: number) => Promise<void>
+      deleteBatchByIds: (database: Database, ids: number[]) => Promise<void>
+    }
+    work: {
+      set: (id: number, work: WorkStatus) => Promise<void>
+      get: (id: number) => Promise<WorkStatus>
+      onChanged: (callback: (worklist: Promise<void>[]) => void) => () => void
     }
   }
 }

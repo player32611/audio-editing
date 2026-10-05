@@ -1,18 +1,10 @@
-import {
-  app,
-  shell,
-  BrowserWindow,
-  ipcMain,
-  nativeTheme,
-  dialog,
-  OpenDialogOptions
-} from 'electron'
+import { app, shell, BrowserWindow, nativeTheme, ipcMain } from 'electron'
 import { join } from 'node:path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import { getVoice, GetVoiceOptions } from '@sellmind/video-editor-core'
+
 import { STORE_KEY } from '../shared/constants'
-import type { Theme } from '../shared/type'
+import type { Theme, WorkStatus } from '../shared/type'
 import { setupFfmpeg } from './ffmpeg'
 import { initDatabase } from './database'
 import { initStore } from './store'
@@ -22,12 +14,15 @@ setupFfmpeg()
 
 let mainWindow: BrowserWindow | null = null
 const store = initStore()
+const workList = new Map<number, WorkStatus>()
 
 function createWindow(): void {
   // Create the browser window.
   mainWindow = new BrowserWindow({
     width: 900,
-    height: 670,
+    height: 750,
+    minWidth: 900,
+    minHeight: 750,
     show: false,
     autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
@@ -57,49 +52,24 @@ function createWindow(): void {
   }
 }
 
-ipcMain.handle('api:selectFolder', async (_, options: OpenDialogOptions) => {
-  const { canceled, filePaths } = await dialog.showOpenDialog({
-    properties: ['openDirectory'], // 允许选择文件夹
-    title: '请选择一个文件夹',
-    ...options
-  })
-
-  if (canceled || filePaths.length === 0) return null // 用户取消
-
-  return filePaths[0] // 返回选中的文件夹路径
-})
-
-ipcMain.handle('api:selectFile', async (_, options: OpenDialogOptions) => {
-  const { canceled, filePaths } = await dialog.showOpenDialog({
-    properties: ['openFile'],
-    title: '请选择一个文件',
-    ...options
-  })
-
-  if (canceled || filePaths.length === 0) return null
-
-  return filePaths[0]
-})
-
-ipcMain.handle('theme:isDark', () => {
-  return nativeTheme.shouldUseDarkColors
-})
-
-ipcMain.handle('theme:get', () => {
-  return nativeTheme.themeSource
-})
-
-ipcMain.handle('sellmind:getVoice', (_, options: GetVoiceOptions) => {
-  return getVoice(options)
-})
-
 nativeTheme.on('updated', () => {
   mainWindow?.webContents.send('theme:changed', nativeTheme.shouldUseDarkColors)
 })
 
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
-// Some APIs can only be used after this event occurs.
+ipcMain.handle('work:set', (_, id: number, work: WorkStatus): void => {
+  workList.set(id, work)
+  mainWindow?.webContents.send('work:changed')
+})
+
+ipcMain.handle('work:get', (_, id: number): WorkStatus | null => {
+  const res = workList.get(id)
+  if (res) return res
+  return null
+})
+
+// 当 Electron 完成时会调用这个方法
+// 初始化完成，可以创建浏览器窗口了
+// 有些 API 只有在这个事件发生后才能使用
 app.whenReady().then(() => {
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron')
@@ -122,14 +92,16 @@ app.whenReady().then(() => {
   })
 })
 
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
+// 当所有窗口都关闭时退出，但在 macOS 上除外。在那边，这是很常见的
+// 让应用程序及其菜单栏保持活跃，直到用户退出
+// 明确地使用 Cmd + Q
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
   }
 })
 
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and require them here.
+// 在这个文件里，你可以加入你应用其余的特定主进程代码
+// 你也可以把它们放在不同的文件里，然后在这里引入。
+import './api'
+import './sellmind'

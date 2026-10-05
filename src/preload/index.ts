@@ -1,12 +1,21 @@
 import { contextBridge, ipcRenderer, OpenDialogOptions } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
-import type { Database, Path, Theme, WorkHistoryInput, WorkStatus, WorkType } from '../shared/type'
+import type {
+  Database,
+  Path,
+  Theme,
+  WorkHistoryInput,
+  WorkHistoryTable,
+  WorkStatus,
+  WorkType
+} from '../shared/type'
 import { GetVoiceOptions } from '@sellmind/video-editor-core'
 
 // Custom APIs for renderer
 const api = {
+  selectFile: (options: OpenDialogOptions) => ipcRenderer.invoke('api:selectFile', options),
   selectFolder: (options: OpenDialogOptions) => ipcRenderer.invoke('api:selectFolder', options),
-  selectFile: (options: OpenDialogOptions) => ipcRenderer.invoke('api:selectFile', options)
+  openFolder: (path: string) => ipcRenderer.invoke('api:openFolder', path)
 }
 
 const theme = {
@@ -37,7 +46,28 @@ const database = {
   selectType: (name: WorkType) => ipcRenderer.invoke('database:selectType', name),
   selectWorkHistory: () => ipcRenderer.invoke('database:selectWorkHistory'),
   insertWorkHistory: (data: WorkHistoryInput) =>
-    ipcRenderer.invoke('database:insertWorkHistory', data)
+    ipcRenderer.invoke('database:insertWorkHistory', data),
+  updateWorkHistory: (data: WorkHistoryTable) =>
+    ipcRenderer.invoke('database:updateWorkHistory', data),
+  deleteAll: (database: Database) => ipcRenderer.invoke('database:deleteAll', database),
+  deleteById: (database: Database, id: number) =>
+    ipcRenderer.invoke('database:deleteById', database, id),
+  deleteBatchByIds: (database: Database, ids: number[]) =>
+    ipcRenderer.invoke('database:deleteBatchByIds', database, ids)
+}
+
+const work = {
+  set: (id: number, work: WorkStatus) => ipcRenderer.invoke('work:set', id, work),
+  get: (id: number) => ipcRenderer.invoke('work:get', id),
+  onChanged: (callback: (worklist: Promise<void>[]) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, worklist: Promise<void>[]): void => {
+      callback(worklist)
+    }
+
+    ipcRenderer.on('work:changed', listener)
+
+    return () => ipcRenderer.removeListener('work:changed', listener)
+  }
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to
@@ -51,6 +81,7 @@ if (process.contextIsolated) {
     contextBridge.exposeInMainWorld('path', path)
     contextBridge.exposeInMainWorld('sellmind', sellmind)
     contextBridge.exposeInMainWorld('database', database)
+    contextBridge.exposeInMainWorld('work', work)
   } catch (error) {
     console.error(error)
   }
@@ -61,4 +92,5 @@ if (process.contextIsolated) {
   window.path = path
   window.sellmind = sellmind
   window.database = database
+  window.work = work
 }

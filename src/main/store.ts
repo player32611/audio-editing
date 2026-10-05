@@ -13,7 +13,7 @@ export const initStore = (): Store<Record<string, string>> => {
   return store
 }
 
-ipcMain.handle('theme:set', (_, theme: Theme) => {
+ipcMain.handle('theme:set', (_, theme: Theme): Theme => {
   if (!store) throw new Error('本地 store 存储未初始化')
 
   nativeTheme.themeSource = theme
@@ -21,14 +21,22 @@ ipcMain.handle('theme:set', (_, theme: Theme) => {
   return nativeTheme.themeSource
 })
 
-ipcMain.handle('path:set', (_, type: Path, path: string) => {
+ipcMain.handle('theme:isDark', (): boolean => {
+  return nativeTheme.shouldUseDarkColors
+})
+
+ipcMain.handle('theme:get', (): Theme => {
+  return nativeTheme.themeSource
+})
+
+ipcMain.handle('path:set', (_, type: Path, path: string): string => {
   if (!store) throw new Error('本地 store 存储未初始化')
 
   store.set(`${STORE_KEY.PATH}-${type}`, path)
-  return store.get(`${STORE_KEY.PATH}-${type}`)
+  return store.get(`${STORE_KEY.PATH}-${type}`) as string
 })
 
-ipcMain.handle('path:get', (_, type: Path) => {
+ipcMain.handle('path:get', (_, type: Path): string => {
   if (!store) throw new Error('本地 store 存储未初始化')
 
   let res = store.get(`${STORE_KEY.PATH}-${type}`)
@@ -43,5 +51,5 @@ ipcMain.handle('path:get', (_, type: Path) => {
     }
     store.set(`${STORE_KEY.PATH}-${type}`, res)
   }
-  return res
+  return res as string
 })

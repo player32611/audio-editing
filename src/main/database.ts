@@ -6,6 +6,7 @@ import {
   StatusTable,
   TypeTable,
   WorkHistoryInput,
+  WorkHistoryTable,
   WorkStatus,
   WorkType
 } from '../shared/type'
@@ -157,7 +158,7 @@ ipcMain.handle('database:selectWorkHistory', () => {
     .all()
 })
 
-ipcMain.handle('database:insertWorkHistory', (_, data: WorkHistoryInput) => {
+ipcMain.handle('database:insertWorkHistory', (_, data: WorkHistoryInput): number => {
   if (!db) throw new Error('数据库尚未初始化')
 
   const stmt = db.prepare(
@@ -175,5 +176,46 @@ ipcMain.handle('database:insertWorkHistory', (_, data: WorkHistoryInput) => {
     data.path
   )
 
-  return result.lastInsertRowid
+  return result.lastInsertRowid as number
+})
+
+ipcMain.handle('database:updateWorkHistory', (_, data: WorkHistoryTable): void => {
+  if (!db) throw new Error('数据库尚未初始化')
+
+  db.prepare(
+    `
+      UPDATE work_history SET type_id = ?, name = ?, time = ?, status_id = ?, path = ?
+      WHERE id = ?
+    `
+  ).run(data.typeId, data.name, data.time, data.statusId, data.path, data.id)
+})
+
+ipcMain.handle('database:deleteAll', (_, database: DatabaseType): void => {
+  if (!db) throw new Error('数据库尚未初始化')
+
+  db.prepare(`DELETE FROM ${database}`).run()
+})
+
+ipcMain.handle('database:deleteById', (_, database: DatabaseType, id: number): void => {
+  if (!db) throw new Error('数据库尚未初始化')
+
+  const stmt = db.prepare(`
+    DELETE FROM ${database}
+    WHERE id = ?
+  `)
+
+  stmt.run(id)
+})
+
+ipcMain.handle('database:deleteBatchByIds', (_, database: DatabaseType, ids: number[]): void => {
+  if (!db) throw new Error('数据库尚未初始化')
+  if (ids.length === 0) return
+
+  const placeholders = ids.map(() => '?').join(', ')
+  const stmt = db.prepare(`
+    DELETE FROM ${database}
+    WHERE id IN (${placeholders})
+  `)
+
+  stmt.run(...ids)
 })

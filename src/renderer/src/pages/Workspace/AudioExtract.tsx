@@ -55,18 +55,16 @@ export default function AudioExtract(): ReactNode {
 
   const onFinish: FormProps<FieldType>['onFinish'] = useCallback(
     async (values) => {
-      const typeId = await window.database.selectType('汉英转译')
-      const statusId = await window.database.selectStatus('待处理')
-      console.log(typeId, statusId)
-      window.database
-        .insertWorkHistory({
-          name: `${values.outputName}.${values.audioFormat}`,
-          time: new Date().toISOString(),
-          path: values.outputPath,
-          typeId,
-          statusId
-        })
-        .then((res) => console.log(res))
+      const typeId = await window.database.selectType('音频提取')
+      const statusId = await window.database.selectStatus('处理中')
+      const data = {
+        name: `${values.outputName}.${values.audioFormat}`,
+        time: new Date().toISOString(),
+        path: values.outputPath,
+        typeId,
+        statusId
+      }
+      const id = await window.database.insertWorkHistory(data)
       window.sellmind
         .getVoice({
           inputVideo: values.inputVideo,
@@ -74,9 +72,15 @@ export default function AudioExtract(): ReactNode {
           audioFormat: values.audioFormat,
           audioBitrate: `${values.audioBitrate}k`
         })
-        .then((res) => console.log(res))
+        .then(async () => {
+          const finishStatus = await window.database.selectStatus('已完成')
+          await window.database.updateWorkHistory({ ...data, statusId: finishStatus, id })
+          await window.work.set(id, '已完成')
+        })
         .catch((err) => console.log(err))
-      navigate('/workspace')
+      window.work.set(id, '处理中').then(() => {
+        navigate('/workspace')
+      })
     },
     [navigate]
   )
