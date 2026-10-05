@@ -67,6 +67,15 @@ ipcMain.handle('work:get', (_, id: number): WorkStatus | null => {
   return null
 })
 
+ipcMain.handle('work:getAll', (): { id: number; status: WorkStatus }[] => {
+  return Array.from(workList, ([key, value]) => ({ id: key, status: value }))
+})
+
+ipcMain.handle('work:delete', (_, id: number) => {
+  workList.delete(id)
+  mainWindow?.webContents.send('work:changed')
+})
+
 // 当 Electron 完成时会调用这个方法
 // 初始化完成，可以创建浏览器窗口了
 // 有些 API 只有在这个事件发生后才能使用

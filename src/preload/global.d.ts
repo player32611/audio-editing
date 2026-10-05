@@ -50,6 +50,8 @@ declare global {
     work: {
       set: (id: number, work: WorkStatus) => Promise<void>
       get: (id: number) => Promise<WorkStatus>
+      getAll: () => Promise<{ id: number; status: WorkStatus }>
+      delete: (id: number) => Promise<void>
       onChanged: (callback: (worklist: Promise<void>[]) => void) => () => void
     }
   }

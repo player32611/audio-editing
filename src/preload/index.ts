@@ -59,6 +59,8 @@ const database = {
 const work = {
   set: (id: number, work: WorkStatus) => ipcRenderer.invoke('work:set', id, work),
   get: (id: number) => ipcRenderer.invoke('work:get', id),
+  getAll: () => ipcRenderer.invoke('work:getAll'),
+  delete: (id: number) => ipcRenderer.invoke('work:delete', id),
   onChanged: (callback: (worklist: Promise<void>[]) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, worklist: Promise<void>[]): void => {
       callback(worklist)
@@ -70,9 +72,9 @@ const work = {
   }
 }
 
-// Use `contextBridge` APIs to expose Electron APIs to
-// renderer only if context isolation is enabled, otherwise
-// just add to the DOM global.
+// 使用 `contextBridge` API 将 Electron API 暴露
+// 只有在启用上下文隔离时才渲染，否则
+// 只添加到 DOM 全局
 if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld('electron', electronAPI)

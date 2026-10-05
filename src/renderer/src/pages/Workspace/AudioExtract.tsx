@@ -3,6 +3,7 @@ import { FolderOpenOutlined, LeftOutlined } from '@ant-design/icons'
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router'
 import type { AudioFormat } from '../../../../shared/type'
+import useSellmind from '@renderer/hooks/useSellmind'
 
 interface FieldType {
   inputVideo: string
@@ -16,6 +17,7 @@ export default function AudioExtract(): ReactNode {
   const [form] = Form.useForm<FieldType>()
   const [isSelecting, setIsSelecting] = useState<boolean>()
   const navigate = useNavigate()
+  const { getVoice } = useSellmind()
 
   const onSelectInput = useCallback(async (): Promise<void> => {
     if (isSelecting) return
@@ -54,35 +56,12 @@ export default function AudioExtract(): ReactNode {
   }, [form])
 
   const onFinish: FormProps<FieldType>['onFinish'] = useCallback(
-    async (values) => {
-      const typeId = await window.database.selectType('音频提取')
-      const statusId = await window.database.selectStatus('处理中')
-      const data = {
-        name: `${values.outputName}.${values.audioFormat}`,
-        time: new Date().toISOString(),
-        path: values.outputPath,
-        typeId,
-        statusId
-      }
-      const id = await window.database.insertWorkHistory(data)
-      window.sellmind
-        .getVoice({
-          inputVideo: values.inputVideo,
-          outputAudio: `${values.outputPath}\\${values.outputName}.${values.audioFormat}`,
-          audioFormat: values.audioFormat,
-          audioBitrate: `${values.audioBitrate}k`
-        })
-        .then(async () => {
-          const finishStatus = await window.database.selectStatus('已完成')
-          await window.database.updateWorkHistory({ ...data, statusId: finishStatus, id })
-          await window.work.set(id, '已完成')
-        })
-        .catch((err) => console.log(err))
-      window.work.set(id, '处理中').then(() => {
+    (values) => {
+      getVoice(values, () => {
         navigate('/workspace')
       })
     },
-    [navigate]
+    [navigate, getVoice]
   )
 
   useEffect(() => {

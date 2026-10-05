@@ -25,13 +25,10 @@ import { getStatusColor } from '@renderer/utils'
 
 const { Paragraph } = Typography
 
-interface DataType extends WorkHistoryUnion {
-  key: number
-}
-
 export default function List(): ReactNode {
-  const [data, setData] = useState<DataType[]>([])
+  const [data, setData] = useState<WorkHistoryUnion[]>([])
   const [selectIds, setSelectIds] = useState<number[]>([])
+  const [pageSize, setPageSize] = useState<number>(10)
   const [messageApi, messageContext] = message.useMessage()
   const [modal, modalContext] = Modal.useModal()
   const navigate = useNavigate()
@@ -83,17 +80,26 @@ export default function List(): ReactNode {
     [messageApi, modal, onRefresh]
   )
 
+  const onResize = useCallback(() => {
+    const allRows = document.querySelectorAll('.ant-table-tbody tr.ant-table-row')
+    setPageSize((window.innerHeight - 250) / allRows[0].getBoundingClientRect().height)
+  }, [])
+
   useEffect(() => {
     onRefresh()
 
     const unsubscribe = window.work.onChanged(() => {
       onRefresh()
     })
+    window.addEventListener('resize', onResize)
 
-    return unsubscribe
-  }, [onRefresh])
+    return () => {
+      window.removeEventListener('resize', onResize)
+      unsubscribe()
+    }
+  }, [onRefresh, onResize])
 
-  const columns: TableProps<DataType>['columns'] = [
+  const columns: TableProps<WorkHistoryUnion>['columns'] = [
     {
       title: '名称',
       dataIndex: 'name',
@@ -148,22 +154,30 @@ export default function List(): ReactNode {
     <>
       {messageContext}
       <Space orientation="vertical">
-        <Flex justify="flex-end">
+        <Flex align="center" justify="space-between">
+          <div>历史任务</div>
           <Button
             type="primary"
             icon={<DeleteOutlined />}
             onClick={() => onDelete(selectIds)}
+            disabled={!selectIds.length}
             danger
           >
             删除
           </Button>
         </Flex>
 
-        <Table<DataType>
-          column={{ align: 'center' }}
-          rowSelection={{ type: 'checkbox', onChange }}
+        <Table<WorkHistoryUnion>
           columns={columns}
           dataSource={data}
+          rowKey={(record) => record.id}
+          column={{ align: 'center' }}
+          rowSelection={{ type: 'checkbox', onChange }}
+          pagination={{
+            placement: ['bottomCenter'],
+            hideOnSinglePage: true,
+            pageSize
+          }}
         />
       </Space>
 
