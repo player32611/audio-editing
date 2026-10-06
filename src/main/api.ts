@@ -1,4 +1,5 @@
 import { shell, ipcMain, dialog, OpenDialogOptions } from 'electron'
+import fs from 'fs'
 
 ipcMain.handle('api:selectFile', async (_, options: OpenDialogOptions) => {
   const { canceled, filePaths } = await dialog.showOpenDialog({
@@ -28,6 +29,9 @@ ipcMain.handle('api:openFolder', (_, path: string): Promise<string> => {
   return shell.openPath(path)
 })
 
-ipcMain.handle('api:showItemInFolder', (_, path: string): void => {
-  shell.showItemInFolder(path)
+ipcMain.handle('api:showItemInFolder', async (_, path: string): Promise<boolean> => {
+  const exist = fs.existsSync(path)
+  if (exist) shell.showItemInFolder(path)
+  else throw new Error('文件不存在')
+  return exist
 })

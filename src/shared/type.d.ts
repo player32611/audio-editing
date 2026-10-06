@@ -6,7 +6,7 @@ export type AudioFormat = 'mp3' | 'wav' | 'aac' | 'flac' | 'ogg'
 
 export type Database = 'status' | 'type' | 'work_history'
 
-export type WorkStatus = '待处理' | '处理中' | '已完成' | '已取消'
+export type WorkStatus = '待处理' | '处理中' | '已完成' | '已中断'
 
 export type WorkType = '音频提取' | '音频裁剪' | '汉英转译'
 
@@ -34,7 +34,7 @@ export interface WorkHistoryUnion extends WorkHistoryTable {
   statusName: WorkStatus
 }
 
-export interface WorkHistoryInput extends WorkHistoryTable {
+export interface WorkHistoryInsert extends WorkHistoryTable {
   id?: number
   time?: string
 }

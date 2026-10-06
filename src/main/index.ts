@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, nativeTheme, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, nativeTheme, ipcMain, dialog } from 'electron'
 import { join } from 'node:path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -6,7 +6,7 @@ import icon from '../../resources/icon.png?asset'
 import { STORE_KEY } from '../shared/constants'
 import type { Theme, WorkStatus } from '../shared/type'
 import { setupFfmpeg } from './ffmpeg'
-import { initDatabase } from './database'
+import { initDatabase, selectStatus, updateWorkHistory } from './database'
 import { initStore } from './store'
 
 // Make the bundled FFmpeg/FFprobe available to @sellmind/video-editor-core.
@@ -17,6 +17,12 @@ const store = initStore()
 const workList = new Map<number, WorkStatus>()
 
 function createWindow(): void {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.show()
+    mainWindow.focus()
+    return
+  }
+
   // Create the browser window.
   mainWindow = new BrowserWindow({
     width: 900,
@@ -38,18 +44,61 @@ function createWindow(): void {
     nativeTheme.themeSource = store.get(STORE_KEY.THEME) as Theme
   })
 
+  mainWindow.on('close', async (event) => {
+    if (!mainWindow) return
+    if (!workList.size) return
+
+    event.preventDefault()
+
+    const { response } = await dialog.showMessageBox(mainWindow, {
+      type: 'question',
+      title: '确认退出',
+      message: `还有 ${workList.size} 个任务正在进行，确定要退出应用吗？`,
+      buttons: ['取消', '退出'],
+      defaultId: 0,
+      cancelId: 0
+    })
+
+    if (response === 1) {
+      const statusId = selectStatus('已中断')
+      workList.forEach((_, id) => {
+        updateWorkHistory(id, { statusId })
+      })
+      mainWindow.destroy()
+    }
+  })
+
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
     return { action: 'deny' }
   })
 
-  // HMR for renderer base on electron-vite cli.
-  // Load the remote URL for development or the local html file for production.
+  // 基于 electron-vite CLI 的渲染器热模块替换（HMR）
+  // 开发时加载远程 URL，生产时加载本地 HTML 文件
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
+}
+
+const gotTheLock = app.requestSingleInstanceLock()
+
+if (!gotTheLock) {
+  app.quit()
+} else {
+  app.on('second-instance', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      if (mainWindow.isMinimized()) {
+        mainWindow.restore()
+      }
+
+      mainWindow.show()
+      mainWindow.focus()
+    }
+  })
+
+  app.whenReady().then(createWindow)
 }
 
 nativeTheme.on('updated', () => {

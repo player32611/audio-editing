@@ -5,7 +5,7 @@ import {
   Database,
   StatusTable,
   WorkHistoryUnion,
-  WorkHistoryInput,
+  WorkHistoryInsert,
   WorkType,
   WorkStatus,
   WorkHistoryTable
@@ -22,7 +22,7 @@ declare global {
       selectFile: (options: OpenDialogOptions) => Promise<string>
       selectFolder: (options: OpenDialogOptions) => Promise<string>
       openFolder: (path: string) => Promise<string>
-      showItemInFolder: (path: string) => void
+      showItemInFolder: (path: string) => Promise<boolean>
     }
     theme: {
       set: (theme: Theme) => Promise<Theme>
@@ -41,9 +41,9 @@ declare global {
       selectAll: (database: Database) => Promise<StatusTable[]>
       selectStatus: (name: WorkStatus) => Promise<number>
       selectType: (name: WorkType) => Promise<number>
-      selectWorkHistory: () => Promise<WorkHistoryUnion[]>
-      insertWorkHistory: (data: WorkHistoryInput) => Promise<number>
-      updateWorkHistory: (data: WorkHistoryTable) => Promise<void>
+      selectWorkHistoryUnion: () => Promise<WorkHistoryUnion[]>
+      insertWorkHistory: (data: WorkHistoryInsert) => Promise<number>
+      updateWorkHistory: (id: number, data: Partial<Omit<WorkHistoryTable, 'id'>>) => Promise<void>
       deleteAll: (database: Database) => Promise<void>
       deleteById: (database: Database, id: number) => Promise<void>
       deleteBatchByIds: (database: Database, ids: number[]) => Promise<void>

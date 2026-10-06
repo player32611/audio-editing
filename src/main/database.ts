@@ -5,8 +5,9 @@ import {
   Database as DatabaseType,
   StatusTable,
   TypeTable,
-  WorkHistoryInput,
+  WorkHistoryInsert,
   WorkHistoryTable,
+  WorkHistoryUnion,
   WorkStatus,
   WorkType
 } from '../shared/type'
@@ -17,7 +18,7 @@ let db: Database.Database | null = null
  * 打开（不存在则创建）主进程的 SQLite 数据库，返回连接。
  * 仅负责建库与连接，不包含任何增删改查。
  */
-export function initDatabase(): Database.Database {
+export const initDatabase = (): Database.Database => {
   if (db) return db
 
   const dbPath = join(app.getPath('userData'), 'audio-editing.db')
@@ -100,41 +101,43 @@ const createTable = (): void => {
     WHERE NOT EXISTS (SELECT 1 FROM status WHERE name = '已完成');
 
     INSERT INTO status (name)
-    SELECT '已取消'
-    WHERE NOT EXISTS (SELECT 1 FROM status WHERE name = '已取消');
+    SELECT '已中断'
+    WHERE NOT EXISTS (SELECT 1 FROM status WHERE name = '已中断');
     `)
 }
 
-ipcMain.handle('database:selectAll', (_, database: DatabaseType) => {
+export const selectAll = (
+  database: DatabaseType
+): StatusTable[] | TypeTable[] | WorkHistoryTable[] => {
   if (!db) throw new Error('数据库尚未初始化')
 
   switch (database) {
     case 'status':
-      return db.prepare('SELECT * FROM status').all()
+      return db.prepare('SELECT * FROM status').all() as StatusTable[]
     case 'type':
-      return db.prepare('SELECT * FROM type').all()
+      return db.prepare('SELECT * FROM type').all() as TypeTable[]
     case 'work_history':
-      return db.prepare('SELECT * FROM work_history').all()
+      return db.prepare('SELECT * FROM work_history').all() as WorkHistoryTable[]
   }
-})
+}
 
-ipcMain.handle('database:selectStatus', (_, name: WorkStatus): number => {
+export const selectStatus = (name: WorkStatus): number => {
   if (!db) throw new Error('数据库尚未初始化')
 
   const res = db.prepare<string, StatusTable>('SELECT id FROM status WHERE name = ?').get(name)
 
   return res?.id || -1
-})
+}
 
-ipcMain.handle('database:selectType', (_, name: WorkType): number => {
+export const selectType = (name: WorkType): number => {
   if (!db) throw new Error('数据库尚未初始化')
 
   const res = db.prepare<string, TypeTable>('SELECT id FROM type WHERE name = ?').get(name)
 
   return res?.id || -1
-})
+}
 
-ipcMain.handle('database:selectWorkHistory', () => {
+export const selectWorkHistoryUnion = (): WorkHistoryUnion[] => {
   if (!db) throw new Error('数据库尚未初始化')
 
   return db
@@ -155,10 +158,10 @@ ipcMain.handle('database:selectWorkHistory', () => {
         ORDER BY wh.time DESC;
       `
     )
-    .all()
-})
+    .all() as WorkHistoryUnion[]
+}
 
-ipcMain.handle('database:insertWorkHistory', (_, data: WorkHistoryInput): number => {
+export const insertWorkHistory = (data: WorkHistoryInsert): number => {
   if (!db) throw new Error('数据库尚未初始化')
 
   const stmt = db.prepare(
@@ -177,18 +180,68 @@ ipcMain.handle('database:insertWorkHistory', (_, data: WorkHistoryInput): number
   )
 
   return result.lastInsertRowid as number
-})
+}
 
-ipcMain.handle('database:updateWorkHistory', (_, data: WorkHistoryTable): void => {
+export const updateWorkHistory = (
+  id: number,
+  data: Partial<Omit<WorkHistoryTable, 'id'>>
+): void => {
   if (!db) throw new Error('数据库尚未初始化')
 
-  db.prepare(
-    `
-      UPDATE work_history SET type_id = ?, name = ?, time = ?, status_id = ?, path = ?
-      WHERE id = ?
-    `
-  ).run(data.typeId, data.name, data.time, data.statusId, data.path, data.id)
+  // 字段名 -> 数据库列名的映射（防止调用方传入任意 key）
+  const columnMap: Record<string, string> = {
+    typeId: 'type_id',
+    name: 'name',
+    time: 'time',
+    statusId: 'status_id',
+    path: 'path'
+  }
+
+  const sets: string[] = []
+  const values: unknown[] = []
+
+  for (const [key, column] of Object.entries(columnMap)) {
+    const value = (data as Record<string, unknown>)[key]
+    if (value !== undefined) {
+      sets.push(`${column} = ?`)
+      values.push(value)
+    }
+  }
+
+  // 没有任何字段需要更新，直接返回
+  if (sets.length === 0) return
+
+  values.push(id)
+
+  db.prepare(`UPDATE work_history SET ${sets.join(', ')} WHERE id = ?`).run(...values)
+}
+
+ipcMain.handle('database:selectAll', (_, database: DatabaseType) => {
+  return selectAll(database)
 })
+
+ipcMain.handle('database:selectStatus', (_, name: WorkStatus): number => {
+  return selectStatus(name)
+})
+
+ipcMain.handle('database:selectType', (_, name: WorkType): number => {
+  return selectType(name)
+})
+
+ipcMain.handle('database:selectWorkHistoryUnion', (): WorkHistoryUnion[] => {
+  return selectWorkHistoryUnion()
+})
+
+ipcMain.handle('database:insertWorkHistory', (_, data: WorkHistoryInsert): number => {
+  return insertWorkHistory(data)
+})
+
+ipcMain.handle(
+  'database:updateWorkHistory',
+  (_, id: number, data: Partial<Omit<WorkHistoryTable, 'id'>>): void => {
+    updateWorkHistory(id, data)
+  }
+)
 
 ipcMain.handle('database:deleteAll', (_, database: DatabaseType): void => {
   if (!db) throw new Error('数据库尚未初始化')

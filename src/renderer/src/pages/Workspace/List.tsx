@@ -1,15 +1,4 @@
-import {
-  Button,
-  Flex,
-  FloatButton,
-  Modal,
-  message,
-  Space,
-  Typography,
-  Table,
-  Tag,
-  type TableProps
-} from 'antd'
+import { App, Button, Flex, FloatButton, Space, Table, Tag, type TableProps } from 'antd'
 import {
   AudioOutlined,
   DeleteOutlined,
@@ -23,20 +12,17 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { WorkHistoryUnion } from '../../../../shared/type'
 import { getStatusColor } from '@renderer/utils'
 
-const { Paragraph } = Typography
-
 export default function List(): ReactNode {
   const [data, setData] = useState<WorkHistoryUnion[]>([])
   const [selectIds, setSelectIds] = useState<number[]>([])
   const [pageSize, setPageSize] = useState<number>(0)
-  const [messageApi, messageContext] = message.useMessage()
-  const [modal, modalContext] = Modal.useModal()
+  const { message, modal } = App.useApp()
   const navigate = useNavigate()
 
   const key = 'delete'
 
   const onRefresh = useCallback(() => {
-    return window.database.selectWorkHistory().then((res) => {
+    return window.database.selectWorkHistoryUnion().then((res) => {
       setData(res.map((item) => ({ ...item, key: item.id })))
     })
   }, [])
@@ -46,13 +32,13 @@ export default function List(): ReactNode {
   }, [])
 
   const onDelete = useCallback(
-    async (ids: number[]) => {
+    async (ids: number[], title?: string, content?: ReactNode | string) => {
       const confirmed = await modal.confirm({
-        title: '是否删除',
-        content: <Paragraph>这将从列表删除任务，且无法恢复！</Paragraph>
+        title: title || '是否删除',
+        content: content || '这将从列表删除任务，且无法恢复！'
       })
       if (!confirmed) return
-      messageApi.open({
+      message.open({
         key,
         type: 'loading',
         content: '删除中'
@@ -60,7 +46,7 @@ export default function List(): ReactNode {
       window.database
         .deleteBatchByIds('work_history', ids)
         .then(() => {
-          messageApi.open({
+          message.open({
             key,
             type: 'success',
             content: '删除成功',
@@ -69,7 +55,7 @@ export default function List(): ReactNode {
           onRefresh()
         })
         .catch(() => {
-          messageApi.open({
+          message.open({
             key,
             type: 'error',
             content: '删除失败',
@@ -77,11 +63,12 @@ export default function List(): ReactNode {
           })
         })
     },
-    [messageApi, modal, onRefresh]
+    [message, modal, onRefresh]
   )
 
   const onResize = useCallback(() => {
     const allRows = document.querySelectorAll('.ant-table-tbody tr.ant-table-row')
+    if (!allRows.length) return
     setPageSize((window.innerHeight - 250) / allRows[0].getBoundingClientRect().height)
   }, [])
 
@@ -136,7 +123,9 @@ export default function List(): ReactNode {
       render: (path, record) => (
         <a
           onClick={() => {
-            window.api.showItemInFolder(`${path}\\${record.name}`)
+            window.api.showItemInFolder(`${path}\\${record.name}`).catch(() => {
+              onDelete([record.id], '文件不存在', '文件已被移动或删除，是否从列表中删除？')
+            })
           }}
         >
           {path}
@@ -156,7 +145,6 @@ export default function List(): ReactNode {
 
   return (
     <>
-      {messageContext}
       <Space orientation="vertical">
         <Flex align="center" justify="space-between">
           <div>历史任务</div>
@@ -214,7 +202,6 @@ export default function List(): ReactNode {
           }}
         />
       </FloatButton.Group>
-      {modalContext}
     </>
   )
 }

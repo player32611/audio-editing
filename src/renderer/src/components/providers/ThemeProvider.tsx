@@ -1,4 +1,4 @@
-import { ConfigProvider, theme } from 'antd'
+import { ConfigProvider, theme, App } from 'antd'
 import { ReactNode, useEffect, useState } from 'react'
 import zhCN from 'antd/locale/zh_CN'
 
@@ -29,7 +29,7 @@ export default function ThemeProvider({ children }: { children: ReactNode }): Re
         }
       }}
     >
-      {children}
+      <App>{children}</App>
     </ConfigProvider>
   )
 }

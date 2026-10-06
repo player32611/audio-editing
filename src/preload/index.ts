@@ -4,7 +4,7 @@ import type {
   Database,
   Path,
   Theme,
-  WorkHistoryInput,
+  WorkHistoryInsert,
   WorkHistoryTable,
   WorkStatus,
   WorkType
@@ -45,11 +45,11 @@ const database = {
   selectAll: (database: Database) => ipcRenderer.invoke('database:selectAll', database),
   selectStatus: (name: WorkStatus) => ipcRenderer.invoke('database:selectStatus', name),
   selectType: (name: WorkType) => ipcRenderer.invoke('database:selectType', name),
-  selectWorkHistory: () => ipcRenderer.invoke('database:selectWorkHistory'),
-  insertWorkHistory: (data: WorkHistoryInput) =>
+  selectWorkHistoryUnion: () => ipcRenderer.invoke('database:selectWorkHistoryUnion'),
+  insertWorkHistory: (data: WorkHistoryInsert) =>
     ipcRenderer.invoke('database:insertWorkHistory', data),
-  updateWorkHistory: (data: WorkHistoryTable) =>
-    ipcRenderer.invoke('database:updateWorkHistory', data),
+  updateWorkHistory: (id: number, data: Partial<Omit<WorkHistoryTable, 'id'>>) =>
+    ipcRenderer.invoke('database:updateWorkHistory', id, data),
   deleteAll: (database: Database) => ipcRenderer.invoke('database:deleteAll', database),
   deleteById: (database: Database, id: number) =>
     ipcRenderer.invoke('database:deleteById', database, id),
