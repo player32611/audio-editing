@@ -15,7 +15,8 @@ import { GetVoiceOptions } from '@sellmind/video-editor-core'
 const api = {
   selectFile: (options: OpenDialogOptions) => ipcRenderer.invoke('api:selectFile', options),
   selectFolder: (options: OpenDialogOptions) => ipcRenderer.invoke('api:selectFolder', options),
-  openFolder: (path: string) => ipcRenderer.invoke('api:openFolder', path)
+  openFolder: (path: string) => ipcRenderer.invoke('api:openFolder', path),
+  showItemInFolder: (path: string) => ipcRenderer.invoke('api:showItemInFolder', path)
 }
 
 const theme = {

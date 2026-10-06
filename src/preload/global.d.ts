@@ -22,6 +22,7 @@ declare global {
       selectFile: (options: OpenDialogOptions) => Promise<string>
       selectFolder: (options: OpenDialogOptions) => Promise<string>
       openFolder: (path: string) => Promise<string>
+      showItemInFolder: (path: string) => void
     }
     theme: {
       set: (theme: Theme) => Promise<Theme>

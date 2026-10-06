@@ -24,6 +24,10 @@ ipcMain.handle('api:selectFolder', async (_, options: OpenDialogOptions) => {
   return filePaths[0] // 返回选中的文件夹路径
 })
 
-ipcMain.handle('api:openFolder', async (_, path: string): Promise<string> => {
-  return await shell.openPath(path)
+ipcMain.handle('api:openFolder', (_, path: string): Promise<string> => {
+  return shell.openPath(path)
+})
+
+ipcMain.handle('api:showItemInFolder', (_, path: string): void => {
+  shell.showItemInFolder(path)
 })

@@ -28,7 +28,7 @@ const { Paragraph } = Typography
 export default function List(): ReactNode {
   const [data, setData] = useState<WorkHistoryUnion[]>([])
   const [selectIds, setSelectIds] = useState<number[]>([])
-  const [pageSize, setPageSize] = useState<number>(10)
+  const [pageSize, setPageSize] = useState<number>(0)
   const [messageApi, messageContext] = message.useMessage()
   const [modal, modalContext] = Modal.useModal()
   const navigate = useNavigate()
@@ -36,7 +36,7 @@ export default function List(): ReactNode {
   const key = 'delete'
 
   const onRefresh = useCallback(() => {
-    window.database.selectWorkHistory().then((res) => {
+    return window.database.selectWorkHistory().then((res) => {
       setData(res.map((item) => ({ ...item, key: item.id })))
     })
   }, [])
@@ -86,7 +86,11 @@ export default function List(): ReactNode {
   }, [])
 
   useEffect(() => {
-    onRefresh()
+    onRefresh().then(() => {
+      setTimeout(() => {
+        onResize()
+      }, 0)
+    })
 
     const unsubscribe = window.work.onChanged(() => {
       onRefresh()
@@ -129,10 +133,10 @@ export default function List(): ReactNode {
       key: 'path',
       dataIndex: 'path',
       ellipsis: true,
-      render: (path) => (
+      render: (path, record) => (
         <a
           onClick={() => {
-            window.api.openFolder(path)
+            window.api.showItemInFolder(`${path}\\${record.name}`)
           }}
         >
           {path}
@@ -174,6 +178,8 @@ export default function List(): ReactNode {
           column={{ align: 'center' }}
           rowSelection={{ type: 'checkbox', onChange }}
           pagination={{
+            total: data.length,
+            showTotal: (total) => `共 ${total} 条`,
             placement: ['bottomCenter'],
             hideOnSinglePage: true,
             pageSize
