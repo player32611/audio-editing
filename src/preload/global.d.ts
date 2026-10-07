@@ -1,5 +1,5 @@
-import { ElectronAPI } from '@electron-toolkit/preload'
-import {
+import type { ElectronAPI } from '@electron-toolkit/preload'
+import type {
   Theme,
   Path,
   Database,
@@ -10,8 +10,9 @@ import {
   WorkStatus,
   WorkHistoryTable
 } from '../shared/type'
-import { GetVoiceOptions } from '@sellmind/video-editor-core'
+import type { GetVoiceOptions } from '@sellmind/video-editor-core'
 import type { OpenDialogOptions } from 'electron'
+import type { FfprobeFormat } from 'fluent-ffmpeg'
 
 export {}
 
@@ -39,6 +40,10 @@ declare global {
     }
     sellmind: {
       getVoice: (options: GetVoiceOptions) => Promise<void>
+    }
+    ffmpeg: {
+      cutAudio: (options) => Promise<void>
+      getVideoData: (path: string) => Promise<FfprobeFormat>
     }
     database: {
       selectAll: (database: Database) => Promise<StatusTable[]>

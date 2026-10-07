@@ -12,6 +12,9 @@ interface getVoiceParams {
   outputName: string
   audioFormat: AudioFormat
   audioBitrate: number
+  audioQuality: number
+  startTime: number
+  endTime: number
 }
 
 export default function useSellmind(): useSellmindData {
@@ -20,7 +23,16 @@ export default function useSellmind(): useSellmindData {
 
   const getVoice = useCallback(
     async (
-      { inputVideo, outputPath, outputName, audioFormat, audioBitrate }: getVoiceParams,
+      {
+        inputVideo,
+        outputPath,
+        outputName,
+        audioFormat,
+        audioBitrate,
+        audioQuality,
+        startTime,
+        endTime
+      }: getVoiceParams,
       onStart?: () => void,
       onFinish?: () => void
     ) => {
@@ -58,10 +70,13 @@ export default function useSellmind(): useSellmindData {
 
       window.sellmind
         .getVoice({
-          inputVideo: inputVideo,
+          inputVideo,
           outputAudio: `${outputPath}\\${outputName}.${audioFormat}`,
-          audioFormat: audioFormat,
-          audioBitrate: `${audioBitrate}k`
+          audioFormat,
+          audioBitrate: `${audioBitrate}k`,
+          audioQuality,
+          startTime,
+          duration: endTime - startTime
         })
         .then(async () => {
           const finishStatus = await window.database.selectStatus('已完成')

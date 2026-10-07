@@ -38,3 +38,13 @@ export interface WorkHistoryInsert extends WorkHistoryTable {
   id?: number
   time?: string
 }
+
+export interface FfmpegCutVideo {
+  // inputAudio: string
+  // outputAudio: string
+  // audioFormat?: 'mp3' | 'wav' | 'aac' | 'flac' | 'ogg'
+  // audioBitrate?: string
+  // audioQuality?: number
+  // startTime?: number
+  // duration?: number
+}

@@ -13,7 +13,7 @@ export default function File(): ReactNode {
     window.api
       .selectFolder({ defaultPath: inputPath })
       .then((res) => {
-        if (res) window.path.set('output', res).then(setInputPath)
+        if (res) window.path.set('input', res).then(setInputPath)
       })
       .finally(() => {
         setIsSelecting(false)

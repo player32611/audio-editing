@@ -45,6 +45,11 @@ const sellmind = {
   getVoice: (options: GetVoiceOptions) => ipcRenderer.invoke('sellmind:getVoice', options)
 }
 
+const ffmpeg = {
+  cutAudio: (options) => ipcRenderer.invoke('ffmpeg:cutAudio', options),
+  getVideoData: (path: string) => ipcRenderer.invoke('ffmpeg:getVideoData', path)
+}
+
 const database = {
   selectAll: (database: Database) => ipcRenderer.invoke('database:selectAll', database),
   selectStatus: (name: WorkStatus) => ipcRenderer.invoke('database:selectStatus', name),
@@ -88,6 +93,7 @@ if (process.contextIsolated) {
     contextBridge.exposeInMainWorld('theme', theme)
     contextBridge.exposeInMainWorld('path', path)
     contextBridge.exposeInMainWorld('sellmind', sellmind)
+    contextBridge.exposeInMainWorld('ffmpeg', ffmpeg)
     contextBridge.exposeInMainWorld('database', database)
     contextBridge.exposeInMainWorld('work', work)
   } catch (error) {
@@ -100,6 +106,7 @@ if (process.contextIsolated) {
   window.theme = theme
   window.path = path
   window.sellmind = sellmind
+  window.ffmpeg = ffmpeg
   window.database = database
   window.work = work
 }

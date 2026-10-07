@@ -71,7 +71,7 @@ export default function List(): ReactNode {
   const onResize = useCallback(() => {
     const allRows = document.querySelectorAll('.ant-table-tbody tr.ant-table-row')
     if (!allRows.length) return
-    setPageSize((window.innerHeight - 250) / allRows[0].getBoundingClientRect().height)
+    setPageSize(Math.floor((window.innerHeight - 260) / allRows[0].getBoundingClientRect().height))
   }, [])
 
   const onNavigate = useCallback(() => {
