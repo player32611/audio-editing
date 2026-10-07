@@ -24,6 +24,9 @@ declare global {
       openFolder: (path: string) => Promise<string>
       showItemInFolder: (path: string) => Promise<boolean>
     }
+    fs: {
+      existsSync: (path: string) => Promise<boolean>
+    }
     theme: {
       set: (theme: Theme) => Promise<Theme>
       get: () => Promise<Theme>

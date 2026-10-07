@@ -13,6 +13,7 @@ import { WorkHistoryUnion } from '../../../../shared/type'
 import { getStatusColor } from '@renderer/utils'
 
 export default function List(): ReactNode {
+  const [isLoading, setIsLoading] = useState<boolean>(true)
   const [data, setData] = useState<WorkHistoryUnion[]>([])
   const [selectIds, setSelectIds] = useState<number[]>([])
   const [pageSize, setPageSize] = useState<number>(0)
@@ -21,9 +22,10 @@ export default function List(): ReactNode {
 
   const key = 'delete'
 
-  const onRefresh = useCallback(() => {
+  const onRefresh = useCallback(async () => {
     return window.database.selectWorkHistoryUnion().then((res) => {
       setData(res.map((item) => ({ ...item, key: item.id })))
+      setIsLoading(false)
     })
   }, [])
 
@@ -161,10 +163,12 @@ export default function List(): ReactNode {
 
         <Table<WorkHistoryUnion>
           columns={columns}
+          loading={isLoading}
           dataSource={data}
           rowKey={(record) => record.id}
           column={{ align: 'center' }}
           rowSelection={{ type: 'checkbox', onChange }}
+          locale={{ emptyText: null }}
           pagination={{
             total: data.length,
             showTotal: (total) => `共 ${total} 条`,
@@ -192,6 +196,7 @@ export default function List(): ReactNode {
             color: 'blue',
             placement: 'left'
           }}
+          onClick={() => navigate('/workspace/audioTrim')}
         />
         <FloatButton
           icon={<TranslationOutlined />}

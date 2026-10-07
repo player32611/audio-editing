@@ -19,6 +19,10 @@ const api = {
   showItemInFolder: (path: string) => ipcRenderer.invoke('api:showItemInFolder', path)
 }
 
+const fs = {
+  existsSync: (path: string) => ipcRenderer.invoke('fs:existsSync', path)
+}
+
 const theme = {
   set: (theme: Theme) => ipcRenderer.invoke('theme:set', theme),
   get: () => ipcRenderer.invoke('theme:get'),
@@ -80,6 +84,7 @@ if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld('electron', electronAPI)
     contextBridge.exposeInMainWorld('api', api)
+    contextBridge.exposeInMainWorld('fs', fs)
     contextBridge.exposeInMainWorld('theme', theme)
     contextBridge.exposeInMainWorld('path', path)
     contextBridge.exposeInMainWorld('sellmind', sellmind)
@@ -91,6 +96,7 @@ if (process.contextIsolated) {
 } else {
   window.electron = electronAPI
   window.api = api
+  window.fs = fs
   window.theme = theme
   window.path = path
   window.sellmind = sellmind

@@ -16,6 +16,7 @@ interface getVoiceParams {
 
 export default function useSellmind(): useSellmindData {
   const { message, notification } = App.useApp()
+  const key = 'message'
 
   const getVoice = useCallback(
     async (
@@ -23,6 +24,28 @@ export default function useSellmind(): useSellmindData {
       onStart?: () => void,
       onFinish?: () => void
     ) => {
+      const isExistInput = await window.fs.existsSync(inputVideo)
+      if (!isExistInput) {
+        message.open({
+          key,
+          type: 'error',
+          content: '输入文件不存在，请重试',
+          duration: 3
+        })
+        return
+      }
+
+      const isExistOuput = await window.fs.existsSync(outputPath)
+      if (!isExistOuput) {
+        message.open({
+          key,
+          type: 'error',
+          content: '输出文件夹不存在，请重试',
+          duration: 3
+        })
+        return
+      }
+
       const type = await window.database.selectType('音频提取')
       const workStatus = await window.database.selectStatus('处理中')
       const id = await window.database.insertWorkHistory({
@@ -47,13 +70,29 @@ export default function useSellmind(): useSellmindData {
           notification.success({
             title: '任务完成',
             description: `您的 ${outputName}.${audioFormat} 已处理完成，请查看`,
-            showProgress: true
+            showProgress: true,
+            duration: 3
           })
           onFinish?.()
         })
-        .catch((err) => console.log(err))
+        .catch(async () => {
+          const failedId = await window.database.selectStatus('已中断')
+          window.database.updateWorkHistory(id, { statusId: failedId })
+          window.work.delete(id)
+          message.open({
+            key,
+            type: 'error',
+            content: '发生未知错误，请重试',
+            duration: 3
+          })
+        })
       window.work.set(id, '处理中').then(() => {
-        message.success('已开始处理')
+        message.open({
+          key,
+          type: 'success',
+          content: '已开始处理',
+          duration: 3
+        })
         onStart?.()
       })
     },
