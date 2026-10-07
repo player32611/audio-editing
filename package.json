@@ -1,9 +1,9 @@
 {
   "name": "audio-editing",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "An Electron application with React and TypeScript",
   "main": "./out/main/index.js",
-  "author": "example.com",
+  "author": "player32611",
   "homepage": "https://electron-vite.org",
   "scripts": {
     "format": "prettier --write .",

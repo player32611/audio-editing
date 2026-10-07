@@ -1,5 +1,5 @@
 appId: com.electron.app
-productName: audio-editing
+productName: Audio Editing
 directories:
   buildResources: build
 files:
@@ -14,7 +14,7 @@ asarUnpack:
   - node_modules/@ffmpeg-installer/**
   - node_modules/@ffprobe-installer/**
 win:
-  executableName: audio-editing
+  executableName: Audio Editing
   target:
     - nsis
     - portable

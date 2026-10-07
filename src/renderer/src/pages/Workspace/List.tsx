@@ -74,6 +74,10 @@ export default function List(): ReactNode {
     setPageSize((window.innerHeight - 250) / allRows[0].getBoundingClientRect().height)
   }, [])
 
+  const onNavigate = useCallback(() => {
+    message.info('功能建设中')
+  }, [message])
+
   useEffect(() => {
     onRefresh().then(() => {
       setTimeout(() => {
@@ -196,7 +200,7 @@ export default function List(): ReactNode {
             color: 'blue',
             placement: 'left'
           }}
-          onClick={() => navigate('/workspace/audioTrim')}
+          onClick={() => onNavigate()}
         />
         <FloatButton
           icon={<TranslationOutlined />}
@@ -205,6 +209,7 @@ export default function List(): ReactNode {
             color: 'blue',
             placement: 'left'
           }}
+          onClick={() => onNavigate()}
         />
       </FloatButton.Group>
     </>
