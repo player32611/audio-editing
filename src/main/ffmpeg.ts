@@ -33,9 +33,9 @@ export function setupFfmpeg(): void {
   process.env.PATH = [...binDirs, process.env.PATH ?? ''].join(delimiter)
 }
 
-ipcMain.handle('ffmpeg:cutAudio', (_, options) => {
-  // return Ffmpeg().videoCodec
-})
+// ipcMain.handle('ffmpeg:cutAudio', (_, options) => {
+//   // return Ffmpeg().videoCodec
+// })
 
 ipcMain.handle('ffmpeg:getVideoData', (_, path: string) => {
   return new Promise<Ffmpeg.FfprobeFormat>((resolve, reject) => {
