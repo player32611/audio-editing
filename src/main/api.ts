@@ -1,5 +1,7 @@
 import { shell, ipcMain, dialog, OpenDialogOptions } from 'electron'
 import fs from 'fs'
+import path from 'path'
+import type { FileName } from '../shared/type'
 
 ipcMain.handle('api:selectFile', async (_, options: OpenDialogOptions) => {
   const { canceled, filePaths } = await dialog.showOpenDialog({
@@ -34,4 +36,20 @@ ipcMain.handle('api:showItemInFolder', async (_, path: string): Promise<boolean>
   if (exist) shell.showItemInFolder(path)
   else throw new Error('文件不存在')
   return exist
+})
+
+ipcMain.handle('api:existsSync', async (_, path: string): Promise<boolean> => {
+  return fs.existsSync(path)
+})
+
+ipcMain.handle('api:parseFilePath', async (_, filePath): Promise<FileName> => {
+  const ext = path.extname(filePath) // 含点，如 ".txt"
+  const fullName = path.basename(filePath) // 含扩展名
+  const name = path.basename(filePath, ext) // 不含扩展名
+
+  return {
+    name,
+    ext: ext.startsWith('.') ? ext.slice(1) : ext,
+    fullName
+  }
 })

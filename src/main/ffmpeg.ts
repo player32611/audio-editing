@@ -3,6 +3,8 @@ import { delimiter, dirname } from 'path'
 import ffmpegInstaller from '@ffmpeg-installer/ffmpeg'
 import ffprobeInstaller from '@ffprobe-installer/ffprobe'
 import Ffmpeg from 'fluent-ffmpeg'
+import { CutAudioOptions } from '../shared/type'
+import type { FfprobeFormat, FfprobeStream } from 'fluent-ffmpeg'
 
 /**
  * 在打包的构建中，二进制文件位于 app.asar 内，但它们只能从解包的副本中启动
@@ -33,18 +35,63 @@ export function setupFfmpeg(): void {
   process.env.PATH = [...binDirs, process.env.PATH ?? ''].join(delimiter)
 }
 
-// ipcMain.handle('ffmpeg:cutAudio', (_, options) => {
-//   // return Ffmpeg().videoCodec
-// })
+ipcMain.handle(
+  'ffmpeg:cutAudio',
+  (
+    _,
+    {
+      inputAudio,
+      outputAudio,
+      audioFormat,
+      audioBitrate,
+      audioQuality,
+      startTime,
+      duration
+    }: CutAudioOptions
+  ) => {
+    return new Promise<void>((reslove, reject) => {
+      Ffmpeg(inputAudio)
+        .setStartTime(startTime)
+        .duration(duration)
+        .format(audioFormat)
+        .audioBitrate(audioBitrate)
+        .audioQuality(audioQuality)
+        .on('error', () => {
+          reject()
+        })
+        .on('end', () => {
+          reslove()
+        })
+        .save(outputAudio)
+    })
+  }
+)
 
 ipcMain.handle('ffmpeg:getVideoData', (_, path: string) => {
-  return new Promise<Ffmpeg.FfprobeFormat>((resolve, reject) => {
+  return new Promise<FfprobeFormat>((resolve, reject) => {
     Ffmpeg.ffprobe(path, (err, metadata) => {
       if (err) {
         reject(err)
         return
       }
       resolve(metadata.format)
+    })
+  })
+})
+
+ipcMain.handle('ffmpeg:getAudioData', (_, path: string) => {
+  return new Promise<FfprobeStream>((resolve, reject) => {
+    Ffmpeg.ffprobe(path, (err, metadata) => {
+      if (err) {
+        reject(err)
+        return
+      }
+      const audio = metadata.streams.find((stream) => stream.codec_type === 'audio')
+      if (!audio) {
+        reject('无音频轨道')
+        return
+      }
+      resolve(audio)
     })
   })
 })

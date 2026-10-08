@@ -1,4 +1,4 @@
-# audio-editing
+# Audio Editing
 
 基于 Electron 的桌面端音频处理工具,支持从视频中提取音频、音频裁剪等功能。内置 FFmpeg/FFprobe,用户无需手动安装任何依赖,开箱即用。
 

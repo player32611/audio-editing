@@ -1,4 +1,14 @@
-import { App, Button, Flex, FloatButton, Space, Table, Tag, type TableProps } from 'antd'
+import {
+  App,
+  Button,
+  Flex,
+  FloatButton,
+  Space,
+  Table,
+  Tag,
+  Typography,
+  type TableProps
+} from 'antd'
 import {
   AudioOutlined,
   DeleteOutlined,
@@ -11,6 +21,8 @@ import { useNavigate } from 'react-router'
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { WorkHistoryUnion } from '../../../../shared/type'
 import { getStatusColor } from '@renderer/utils'
+
+const { Text } = Typography
 
 export default function List(): ReactNode {
   const [isLoading, setIsLoading] = useState<boolean>(true)
@@ -106,7 +118,8 @@ export default function List(): ReactNode {
     {
       title: '类型',
       dataIndex: 'typeName',
-      key: 'typeName'
+      key: 'typeName',
+      render: (typeName) => <Text strong>{typeName}</Text>
     },
     {
       title: '状态',
@@ -200,7 +213,7 @@ export default function List(): ReactNode {
             color: 'blue',
             placement: 'left'
           }}
-          onClick={() => onNavigate()}
+          onClick={() => navigate('/workspace/audioTrim')}
         />
         <FloatButton
           icon={<TranslationOutlined />}

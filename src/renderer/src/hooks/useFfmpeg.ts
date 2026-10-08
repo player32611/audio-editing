@@ -2,12 +2,12 @@ import { App } from 'antd'
 import { useCallback } from 'react'
 import type { AudioFileExtension } from '../../../shared/type'
 
-interface useSellmindData {
-  getVoice: (params: getVoiceParams, onStart?: () => void, onFinish?: () => void) => Promise<void>
+interface useFfmpegData {
+  cutAudio: (params: CutAudioParams, onStart?: () => void, onFinish?: () => void) => Promise<void>
 }
 
-interface getVoiceParams {
-  inputVideo: string
+interface CutAudioParams {
+  inputAudio: string
   outputPath: string
   outputName: string
   audioFormat: AudioFileExtension
@@ -17,14 +17,14 @@ interface getVoiceParams {
   endTime: number
 }
 
-export default function useSellmind(): useSellmindData {
+export function useFfmpeg(): useFfmpegData {
   const { message, notification } = App.useApp()
   const key = 'message'
 
-  const getVoice = useCallback(
+  const cutAudio = useCallback(
     async (
       {
-        inputVideo,
+        inputAudio,
         outputPath,
         outputName,
         audioFormat,
@@ -32,11 +32,11 @@ export default function useSellmind(): useSellmindData {
         audioQuality,
         startTime,
         endTime
-      }: getVoiceParams,
+      }: CutAudioParams,
       onStart?: () => void,
       onFinish?: () => void
     ) => {
-      const isExistInput = await window.api.existsSync(inputVideo)
+      const isExistInput = await window.api.existsSync(inputAudio)
       if (!isExistInput) {
         message.open({
           key,
@@ -46,7 +46,6 @@ export default function useSellmind(): useSellmindData {
         })
         return
       }
-
       const isExistOuput = await window.api.existsSync(outputPath)
       if (!isExistOuput) {
         message.open({
@@ -58,7 +57,7 @@ export default function useSellmind(): useSellmindData {
         return
       }
 
-      const type = await window.database.selectType('音频提取')
+      const type = await window.database.selectType('音频裁剪')
       const workStatus = await window.database.selectStatus('处理中')
       const id = await window.database.insertWorkHistory({
         name: `${outputName}.${audioFormat}`,
@@ -68,9 +67,9 @@ export default function useSellmind(): useSellmindData {
         statusId: workStatus
       })
 
-      window.sellmind
-        .getVoice({
-          inputVideo,
+      window.ffmpeg
+        .cutAudio({
+          inputAudio,
           outputAudio: `${outputPath}\\${outputName}.${audioFormat}`,
           audioFormat,
           audioBitrate: `${audioBitrate}k`,
@@ -114,5 +113,5 @@ export default function useSellmind(): useSellmindData {
     [message, notification]
   )
 
-  return { getVoice }
+  return { cutAudio }
 }

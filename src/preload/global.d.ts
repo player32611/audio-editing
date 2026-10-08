@@ -8,11 +8,13 @@ import type {
   WorkHistoryInsert,
   WorkType,
   WorkStatus,
-  WorkHistoryTable
+  WorkHistoryTable,
+  CutAudioOptions,
+  FileName
 } from '../shared/type'
 import type { GetVoiceOptions } from '@sellmind/video-editor-core'
 import type { OpenDialogOptions } from 'electron'
-import type { FfprobeFormat } from 'fluent-ffmpeg'
+import type { FfprobeFormat, FfprobeStream } from 'fluent-ffmpeg'
 
 export {}
 
@@ -24,9 +26,8 @@ declare global {
       selectFolder: (options: OpenDialogOptions) => Promise<string>
       openFolder: (path: string) => Promise<string>
       showItemInFolder: (path: string) => Promise<boolean>
-    }
-    fs: {
       existsSync: (path: string) => Promise<boolean>
+      parseFilePath: (filePath: string) => Promise<FileName>
     }
     theme: {
       set: (theme: Theme) => Promise<Theme>
@@ -42,8 +43,9 @@ declare global {
       getVoice: (options: GetVoiceOptions) => Promise<void>
     }
     ffmpeg: {
-      cutAudio: (options) => Promise<void>
+      cutAudio: (options: CutAudioOptions) => Promise<void>
       getVideoData: (path: string) => Promise<FfprobeFormat>
+      getAudioData: (path: string) => Promise<FfprobeStream>
     }
     database: {
       selectAll: (database: Database) => Promise<StatusTable[]>

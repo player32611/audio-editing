@@ -8,30 +8,36 @@ import {
   InputNumber,
   Radio,
   Slider,
-  Spin
+  Spin,
+  Row,
+  Col,
+  Typography
 } from 'antd'
 import { FolderOpenOutlined, LeftOutlined } from '@ant-design/icons'
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router'
 import useSellmind from '@renderer/hooks/useSellmind'
 import { formatSeconds } from '@renderer/utils'
-import type { AudioFormat } from '../../../../shared/type'
+import { AUDIO_FILE_EXTENSION, VIDEO_FILE_EXTENSION } from '../../../../shared/constants'
+import type { AudioFileExtension } from '../../../../shared/type'
 import type { FfprobeFormat } from 'fluent-ffmpeg'
 
 interface FieldType {
   inputVideo: string
   outputPath: string
   outputName: string
-  audioFormat: AudioFormat
+  audioFormat: AudioFileExtension
   audioBitrate: number
   audioQuality: number
   audioRange: [number, number]
 }
 
+const { Text } = Typography
+
 export default function AudioExtract(): ReactNode {
   const [form] = Form.useForm<FieldType>()
   const [inputData, setInputData] = useState<FfprobeFormat | null>(null)
-  const [isLoading, setIsLoading] = useState<boolean>(false)
+  const [isLoading, setIsLoading] = useState<boolean>(true)
   const [isSelecting, setIsSelecting] = useState<boolean>(false)
   const navigate = useNavigate()
   const { getVoice } = useSellmind()
@@ -43,13 +49,15 @@ export default function AudioExtract(): ReactNode {
     const defaultInput = form.getFieldValue('inputVideo') || (await window.path.get('input'))
     const inputPath = await window.api.selectFile({
       defaultPath: defaultInput,
-      filters: [{ name: '视频', extensions: ['mp4', 'avi', 'mov', 'mkv', 'webm', 'flv'] }]
+      filters: [{ name: '视频', extensions: Object.values(VIDEO_FILE_EXTENSION) }]
     })
-    form.setFieldValue('inputVideo', inputPath)
-    form.setFieldValue('outputName', inputPath.split('\\').at(-1)?.split('.')[0])
     setIsSelecting(false)
+    if (!inputPath) return
 
     setIsLoading(true)
+    const inputName = await window.api.parseFilePath(inputPath)
+    form.setFieldValue('inputVideo', inputPath)
+    form.setFieldValue('outputName', inputName.name)
     const data = await window.ffmpeg.getVideoData(inputPath)
     form.setFieldValue('audioRange', [0, data.duration || 0])
     setInputData(data)
@@ -90,20 +98,33 @@ export default function AudioExtract(): ReactNode {
   )
 
   useEffect(() => {
-    onReset()
-  }, [onReset])
+    window.path.get('output').then((res) => {
+      form.setFieldValue('outputPath', res)
+      setIsLoading(false)
+    })
+  }, [form])
 
   return (
     <>
-      <Button
-        color="default"
-        variant="text"
-        icon={<LeftOutlined />}
-        onClick={() => navigate('/workspace')}
-      >
-        返回
-      </Button>
+      <Row align="middle">
+        <Col span={8}>
+          <Button
+            color="default"
+            variant="text"
+            icon={<LeftOutlined />}
+            onClick={() => navigate('/workspace')}
+          >
+            返回
+          </Button>
+        </Col>
+
+        <Col span={8} style={{ display: 'flex', justifyContent: 'center' }}>
+          <Text strong>音频提取</Text>
+        </Col>
+      </Row>
+
       <Divider />
+
       <Form
         name="config"
         form={form}
@@ -116,7 +137,7 @@ export default function AudioExtract(): ReactNode {
           label="输入文件"
           rules={[{ required: true, message: '请选择输入文件' }]}
         >
-          <Input suffix={<FolderOpenOutlined />} onClick={onSelectInput} />
+          <Input suffix={<FolderOpenOutlined onClick={onSelectInput} />} onClick={onSelectInput} />
         </Form.Item>
 
         <Form.Item<FieldType>
@@ -124,24 +145,33 @@ export default function AudioExtract(): ReactNode {
           label="输出路径"
           rules={[{ required: true, message: '请选择输出目录' }]}
         >
-          <Input suffix={<FolderOpenOutlined />} onClick={onSelectOutput} />
+          <Input
+            suffix={<FolderOpenOutlined onClick={onSelectOutput} />}
+            onClick={onSelectOutput}
+          />
         </Form.Item>
 
         <Form.Item<FieldType>
           name="outputName"
           label="输出文件名"
-          rules={[{ required: true, message: '请设置输出文件名' }]}
+          rules={[
+            {
+              pattern: /^[^\\/:*?"<>|]+$/,
+              message: '文件名不能包含 \\ / : * ? " < > | 等特殊字符'
+            },
+            { required: true, message: '请设置输出文件名' }
+          ]}
         >
           <Input />
         </Form.Item>
 
         <Form.Item<FieldType> name="audioFormat" label="音频格式" initialValue="mp3">
           <Radio.Group>
-            <Radio.Button value="mp3">mp3</Radio.Button>
-            <Radio.Button value="wav">wav</Radio.Button>
-            <Radio.Button value="aac">acc</Radio.Button>
-            <Radio.Button value="flac">flac</Radio.Button>
-            <Radio.Button value="ogg">ogg</Radio.Button>
+            {Object.values(AUDIO_FILE_EXTENSION).map((val) => (
+              <Radio.Button value={val} key={val}>
+                {val}
+              </Radio.Button>
+            ))}
           </Radio.Group>
         </Form.Item>
 
@@ -164,8 +194,9 @@ export default function AudioExtract(): ReactNode {
 
         <Form.Item<FieldType> name="audioRange" label="截取范围" initialValue={[0, 100]}>
           <Slider
+            step={0.001}
             min={0}
-            max={Math.floor(inputData?.duration || 0)}
+            max={inputData?.duration || 0}
             tooltip={{
               formatter: (value) => formatSeconds(value || 0)
             }}
@@ -191,6 +222,7 @@ export default function AudioExtract(): ReactNode {
           </Flex>
         </Form.Item>
       </Form>
+
       <Spin spinning={isLoading} fullscreen />
     </>
   )

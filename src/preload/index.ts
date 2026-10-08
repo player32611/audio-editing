@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer, OpenDialogOptions } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 import type {
+  CutAudioOptions,
   Database,
   Path,
   Theme,
@@ -9,18 +10,16 @@ import type {
   WorkStatus,
   WorkType
 } from '../shared/type'
-import { GetVoiceOptions } from '@sellmind/video-editor-core'
+import type { GetVoiceOptions } from '@sellmind/video-editor-core'
 
 // Custom APIs for renderer
 const api = {
   selectFile: (options: OpenDialogOptions) => ipcRenderer.invoke('api:selectFile', options),
   selectFolder: (options: OpenDialogOptions) => ipcRenderer.invoke('api:selectFolder', options),
   openFolder: (path: string) => ipcRenderer.invoke('api:openFolder', path),
-  showItemInFolder: (path: string) => ipcRenderer.invoke('api:showItemInFolder', path)
-}
-
-const fs = {
-  existsSync: (path: string) => ipcRenderer.invoke('fs:existsSync', path)
+  showItemInFolder: (path: string) => ipcRenderer.invoke('api:showItemInFolder', path),
+  existsSync: (path: string) => ipcRenderer.invoke('api:existsSync', path),
+  parseFilePath: (filePath: string) => ipcRenderer.invoke('api:parseFilePath', filePath)
 }
 
 const theme = {
@@ -46,8 +45,9 @@ const sellmind = {
 }
 
 const ffmpeg = {
-  cutAudio: (options) => ipcRenderer.invoke('ffmpeg:cutAudio', options),
-  getVideoData: (path: string) => ipcRenderer.invoke('ffmpeg:getVideoData', path)
+  cutAudio: (options: CutAudioOptions) => ipcRenderer.invoke('ffmpeg:cutAudio', options),
+  getVideoData: (path: string) => ipcRenderer.invoke('ffmpeg:getVideoData', path),
+  getAudioData: (path: string) => ipcRenderer.invoke('ffmpeg:getAudioData', path)
 }
 
 const database = {
@@ -89,7 +89,6 @@ if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld('electron', electronAPI)
     contextBridge.exposeInMainWorld('api', api)
-    contextBridge.exposeInMainWorld('fs', fs)
     contextBridge.exposeInMainWorld('theme', theme)
     contextBridge.exposeInMainWorld('path', path)
     contextBridge.exposeInMainWorld('sellmind', sellmind)
@@ -102,7 +101,6 @@ if (process.contextIsolated) {
 } else {
   window.electron = electronAPI
   window.api = api
-  window.fs = fs
   window.theme = theme
   window.path = path
   window.sellmind = sellmind

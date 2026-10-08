@@ -1,8 +1,10 @@
+import { AUDIO_FILE_EXTENSION } from './constants'
+
 export type Theme = 'dark' | 'light' | 'system'
 
 export type Path = 'output' | 'input'
 
-export type AudioFormat = 'mp3' | 'wav' | 'aac' | 'flac' | 'ogg'
+export type AudioFileExtension = (typeof AUDIO_FILE_EXTENSION)[keyof typeof AUDIO_FILE_EXTENSION]
 
 export type Database = 'status' | 'type' | 'work_history'
 
@@ -39,12 +41,18 @@ export interface WorkHistoryInsert extends WorkHistoryTable {
   time?: string
 }
 
-export interface FfmpegCutVideo {
-  // inputAudio: string
-  // outputAudio: string
-  // audioFormat?: 'mp3' | 'wav' | 'aac' | 'flac' | 'ogg'
-  // audioBitrate?: string
-  // audioQuality?: number
-  // startTime?: number
-  // duration?: number
+export interface CutAudioOptions {
+  inputAudio: string
+  outputAudio: string
+  audioFormat: AudioFileExtension
+  audioBitrate: string
+  audioQuality: number
+  startTime: number
+  duration: number
+}
+
+export interface FileName {
+  name: string
+  ext: string
+  fullName: string
 }
