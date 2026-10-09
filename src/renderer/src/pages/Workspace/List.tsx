@@ -12,6 +12,7 @@ import {
 import {
   AudioOutlined,
   DeleteOutlined,
+  EditOutlined,
   PlusOutlined,
   ScissorOutlined,
   TranslationOutlined
@@ -197,6 +198,15 @@ export default function List(): ReactNode {
       </Space>
 
       <FloatButton.Group icon={<PlusOutlined />} type="primary" trigger="click">
+        <FloatButton
+          icon={<EditOutlined />}
+          tooltip={{
+            title: '音频编辑',
+            color: 'blue',
+            placement: 'left'
+          }}
+          onClick={() => navigate('/workspace/audioEdit')}
+        />
         <FloatButton
           icon={<AudioOutlined />}
           tooltip={{

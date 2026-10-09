@@ -3,8 +3,8 @@ import { delimiter, dirname } from 'path'
 import ffmpegInstaller from '@ffmpeg-installer/ffmpeg'
 import ffprobeInstaller from '@ffprobe-installer/ffprobe'
 import Ffmpeg from 'fluent-ffmpeg'
-import { CutAudioOptions } from '../shared/type'
-import type { FfprobeFormat, FfprobeStream } from 'fluent-ffmpeg'
+import { CutAudioOptions, SetAduioTagOptions } from '../shared/type'
+import type { FfprobeData, FfprobeStream } from 'fluent-ffmpeg'
 
 /**
  * 在打包的构建中，二进制文件位于 app.asar 内，但它们只能从解包的副本中启动
@@ -67,19 +67,19 @@ ipcMain.handle(
   }
 )
 
-ipcMain.handle('ffmpeg:getVideoData', (_, path: string) => {
-  return new Promise<FfprobeFormat>((resolve, reject) => {
+ipcMain.handle('ffmpeg:getMediaData', (_, path: string) => {
+  return new Promise<FfprobeData>((resolve, reject) => {
     Ffmpeg.ffprobe(path, (err, metadata) => {
       if (err) {
         reject(err)
         return
       }
-      resolve(metadata.format)
+      resolve(metadata)
     })
   })
 })
 
-ipcMain.handle('ffmpeg:getAudioData', (_, path: string) => {
+ipcMain.handle('ffmpeg:getAudioStream', (_, path: string) => {
   return new Promise<FfprobeStream>((resolve, reject) => {
     Ffmpeg.ffprobe(path, (err, metadata) => {
       if (err) {
@@ -93,5 +93,75 @@ ipcMain.handle('ffmpeg:getAudioData', (_, path: string) => {
       }
       resolve(audio)
     })
+  })
+})
+
+ipcMain.handle('ffmpeg:getAudioCover', (_, path: string) => {
+  return new Promise<Uint8Array<ArrayBuffer>>((resolve, reject) => {
+    const chunks: Buffer[] = []
+
+    const command = Ffmpeg(path).outputOptions(['-map 0:v:0', '-c:v mjpeg']).format('image2pipe')
+
+    const stream = command.pipe()
+
+    stream.on('data', (chunk) => {
+      chunks.push(Buffer.from(chunk))
+    })
+
+    stream.on('end', () => {
+      resolve(Buffer.concat(chunks))
+    })
+
+    stream.on('error', reject)
+
+    command.on('error', reject)
+  })
+})
+
+ipcMain.handle('ffmpeg:setAudioTags', (_, options: SetAduioTagOptions): Promise<void> => {
+  const {
+    inputAudio,
+    outputAudio,
+    title,
+    artist,
+    album_artist,
+    album,
+    composer,
+    genre,
+    date,
+    track,
+    disc
+  } = options
+
+  const tags: Record<string, string | number | undefined> = {
+    title,
+    artist,
+    album_artist,
+    album,
+    composer,
+    genre,
+    date,
+    track,
+    disc
+  }
+
+  const outputOptions = ['-c copy']
+
+  for (const [key, value] of Object.entries(tags)) {
+    if (value !== undefined) {
+      outputOptions.push('-metadata', `${key}=${value}`)
+    }
+  }
+
+  return new Promise<void>((resolve, reject) => {
+    Ffmpeg(inputAudio)
+      .outputOptions(outputOptions)
+      .on('error', (error) => {
+        reject(error)
+      })
+      .on('end', () => {
+        resolve()
+      })
+      .save(outputAudio)
   })
 })

@@ -10,11 +10,12 @@ import type {
   WorkStatus,
   WorkHistoryTable,
   CutAudioOptions,
-  FileName
+  FileName,
+  SetAduioTagOptions
 } from '../shared/type'
 import type { GetVoiceOptions } from '@sellmind/video-editor-core'
 import type { OpenDialogOptions } from 'electron'
-import type { FfprobeFormat, FfprobeStream } from 'fluent-ffmpeg'
+import type { FfprobeData, FfprobeStream } from 'fluent-ffmpeg'
 
 export {}
 
@@ -44,8 +45,10 @@ declare global {
     }
     ffmpeg: {
       cutAudio: (options: CutAudioOptions) => Promise<void>
-      getVideoData: (path: string) => Promise<FfprobeFormat>
-      getAudioData: (path: string) => Promise<FfprobeStream>
+      getMediaData: (path: string) => Promise<FfprobeData>
+      getAudioStream: (path: string) => Promise<FfprobeStream>
+      getAudioCover: (path: string) => Promise<Uint8Array<ArrayBuffer>>
+      setAudioTags: (options: SetAduioTagOptions) => Promise<void>
     }
     database: {
       selectAll: (database: Database) => Promise<StatusTable[]>

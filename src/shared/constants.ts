@@ -19,3 +19,9 @@ export const VIDEO_FILE_EXTENSION = {
   WEBM: 'webm',
   FLV: 'flv'
 } as const
+
+export const IMAGE_FILE_EXTENSION = {
+  JPEG: 'jpg',
+  PNG: 'png',
+  WEBP: 'webp'
+} as const

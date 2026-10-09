@@ -58,9 +58,9 @@ export default function AudioExtract(): ReactNode {
     const inputName = await window.api.parseFilePath(inputPath)
     form.setFieldValue('inputVideo', inputPath)
     form.setFieldValue('outputName', inputName.name)
-    const data = await window.ffmpeg.getVideoData(inputPath)
-    form.setFieldValue('audioRange', [0, data.duration || 0])
-    setInputData(data)
+    const data = await window.ffmpeg.getMediaData(inputPath)
+    form.setFieldValue('audioRange', [0, data.format.duration || 0])
+    setInputData(data.format)
     setIsLoading(false)
   }, [form, isSelecting])
 
@@ -68,13 +68,14 @@ export default function AudioExtract(): ReactNode {
     if (isSelecting) return
     setIsSelecting(true)
     const outputPath = await window.api.selectFolder({
-      defaultPath: form.getFieldValue('outputPath')
+      defaultPath: form.getFieldValue('outputPath') || undefined
     })
     form.setFieldValue('outputPath', outputPath)
     setIsSelecting(false)
   }, [form, isSelecting])
 
   const onReset = useCallback((): void => {
+    setInputData(null)
     form.resetFields()
     window.path.get('output').then((res) => {
       form.setFieldValue('outputPath', res)

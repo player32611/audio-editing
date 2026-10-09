@@ -4,6 +4,7 @@ import type {
   CutAudioOptions,
   Database,
   Path,
+  SetAduioTagOptions,
   Theme,
   WorkHistoryInsert,
   WorkHistoryTable,
@@ -46,8 +47,10 @@ const sellmind = {
 
 const ffmpeg = {
   cutAudio: (options: CutAudioOptions) => ipcRenderer.invoke('ffmpeg:cutAudio', options),
-  getVideoData: (path: string) => ipcRenderer.invoke('ffmpeg:getVideoData', path),
-  getAudioData: (path: string) => ipcRenderer.invoke('ffmpeg:getAudioData', path)
+  getMediaData: (path: string) => ipcRenderer.invoke('ffmpeg:getMediaData', path),
+  getAudioStream: (path: string) => ipcRenderer.invoke('ffmpeg:getAudioStream', path),
+  getAudioCover: (path: string) => ipcRenderer.invoke('ffmpeg:getAudioCover', path),
+  setAudioTags: (options: SetAduioTagOptions) => ipcRenderer.invoke('ffmpeg:setAudioTags', options)
 }
 
 const database = {

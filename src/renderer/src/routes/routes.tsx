@@ -8,6 +8,7 @@ import AudioExtract from '@renderer/pages/Workspace/AudioExtract'
 import List from '@renderer/pages/Workspace/List'
 import File from '@renderer/pages/Settings/Systems/File'
 import AudioTrim from '@renderer/pages/Workspace/AudioTrim'
+import { AudioEdit } from '@renderer/pages/Workspace/AudioEdit'
 
 const router = createHashRouter([
   {
@@ -29,6 +30,10 @@ const router = createHashRouter([
           {
             path: 'audioTrim',
             element: <AudioTrim />
+          },
+          {
+            path: 'audioEdit',
+            element: <AudioEdit />
           }
         ]
       },

@@ -58,7 +58,7 @@ export default function AudioTrim(): ReactNode {
     const inputName = await window.api.parseFilePath(inputPath)
     form.setFieldValue('inputAudio', inputPath)
     form.setFieldValue('outputName', inputName.name)
-    const data = await window.ffmpeg.getAudioData(inputPath)
+    const data = await window.ffmpeg.getAudioStream(inputPath)
     form.setFieldValue('audioRange', [0, data.duration || 0])
     setInputData(data)
     setIsLoading(false)
@@ -69,7 +69,7 @@ export default function AudioTrim(): ReactNode {
 
     setIsSelecting(true)
     const outputPath = await window.api.selectFolder({
-      defaultPath: form.getFieldValue('outputPath')
+      defaultPath: form.getFieldValue('outputPath') || undefined
     })
     form.setFieldValue('outputPath', outputPath)
     setIsSelecting(false)
