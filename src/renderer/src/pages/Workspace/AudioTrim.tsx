@@ -16,7 +16,7 @@ import {
 import { useNavigate } from 'react-router'
 import { LeftOutlined, FolderOpenOutlined } from '@ant-design/icons'
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
-import { useFfmpeg } from '@renderer/hooks/useFfmpeg'
+import { useTools } from '@renderer/hooks'
 import { formatSeconds } from '@renderer/utils'
 import type { AudioFileExtension } from '../../../../shared/type'
 import type { FfprobeStream } from 'fluent-ffmpeg'
@@ -40,7 +40,7 @@ export default function AudioTrim(): ReactNode {
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [isSelecting, setIsSelecting] = useState<boolean>(false)
   const navigate = useNavigate()
-  const { cutAudio } = useFfmpeg()
+  const { cutAudio } = useTools()
 
   const onSelectInput = useCallback(async (): Promise<void> => {
     if (isSelecting) return
@@ -84,18 +84,18 @@ export default function AudioTrim(): ReactNode {
   }, [form])
 
   const onFinish: FormProps<FieldType>['onFinish'] = useCallback(
-    (values) => {
-      console.log(values)
-      cutAudio(
-        {
-          ...values,
-          startTime: values.audioRange[0],
-          endTime: values.audioRange[1]
-        },
-        () => {
-          navigate('/workspace')
-        }
-      )
+    async ({ outputPath, outputName, audioFormat, audioBitrate, ...params }) => {
+      setIsLoading(true)
+      await cutAudio({
+        outputAudio: `${outputPath}\\${outputName}.${audioFormat}`,
+        audioFormat,
+        audioBitrate: `${audioBitrate}k`,
+        startTime: params.audioRange[0],
+        duration: params.audioRange[1] - params.audioRange[0],
+        ...params
+      })
+      setIsLoading(false)
+      navigate('/workspace')
     },
     [cutAudio, navigate]
   )

@@ -21,7 +21,7 @@ export const VIDEO_FILE_EXTENSION = {
 } as const
 
 export const IMAGE_FILE_EXTENSION = {
-  JPEG: 'jpg',
+  JPEG: 'jpeg',
   PNG: 'png',
   WEBP: 'webp'
 } as const

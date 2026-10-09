@@ -9,14 +9,15 @@ import {
   Spin,
   Form,
   Image,
+  FloatButton,
   type FormProps
 } from 'antd'
-import { FolderOpenOutlined, LeftOutlined } from '@ant-design/icons'
-import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { FolderOpenOutlined, LeftOutlined, ExclamationCircleOutlined } from '@ant-design/icons'
+import { useCallback, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router'
 import { AUDIO_FILE_EXTENSION, IMAGE_FILE_EXTENSION } from '../../../../shared/constants'
 import type { AudioTag } from '../../../../shared/type'
-import { useFfmpeg } from '@renderer/hooks'
+import { useTools } from '@renderer/hooks'
 
 interface FieldType extends AudioTag {
   inputAudio: string
@@ -30,11 +31,11 @@ const { Text } = Typography
 export function AudioEdit(): ReactNode {
   const [form] = Form.useForm<FieldType>()
   const [coverSrc, setCoverSrc] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState<boolean>(true)
+  const [isLoading, setIsLoading] = useState<boolean>(false)
   const [isSelecting, setIsSelecting] = useState<boolean>(false)
   const disabled = !form.getFieldValue('inputAudio')
   const navigate = useNavigate()
-  const { setAudioTags } = useFfmpeg()
+  const { setAudioTags } = useTools()
 
   const onReset = useCallback(async () => {
     setIsLoading(true)
@@ -74,7 +75,7 @@ export function AudioEdit(): ReactNode {
   }, [form, isSelecting, onReset])
 
   const onSelectOutput = useCallback(async (): Promise<void> => {
-    if (isSelecting) return
+    if (isSelecting || disabled) return
 
     setIsSelecting(true)
     const outputPath = await window.api.selectFolder({
@@ -82,36 +83,38 @@ export function AudioEdit(): ReactNode {
     })
     form.setFieldValue('outputPath', outputPath)
     setIsSelecting(false)
-  }, [form, isSelecting])
+  }, [form, isSelecting, disabled])
 
   const onSelectCover = useCallback(async () => {
-    if (isSelecting) return
+    if (isSelecting || disabled) return
 
     setIsSelecting(true)
-    const outputPath = await window.api.selectFile({
+    const coverPath = await window.api.selectFile({
       defaultPath: form.getFieldValue('coverPath') || undefined,
       filters: [{ name: '图片', extensions: Object.values(IMAGE_FILE_EXTENSION) }]
     })
-    form.setFieldValue('coverPath', outputPath)
-    setCoverSrc(outputPath)
+    if (coverPath) {
+      const imageSrc = await window.api.loadImage(coverPath)
+      form.setFieldValue('coverPath', coverPath)
+      setCoverSrc(imageSrc.dataUrl)
+    }
     setIsSelecting(false)
-  }, [form, isSelecting])
+  }, [form, isSelecting, disabled])
 
   const onFinish: FormProps<FieldType>['onFinish'] = useCallback(
-    (values) => {
-      setAudioTags(values, () => {
-        navigate('/workspace')
+    async ({ inputAudio, outputPath, outputName, ...tags }) => {
+      setIsLoading(true)
+      const { ext } = await window.api.parseFilePath(inputAudio)
+      await setAudioTags({
+        inputAudio,
+        outputAudio: `${outputPath}\\${outputName}.${ext}`,
+        ...tags
       })
+      setIsLoading(false)
+      navigate('/workspace')
     },
     [navigate, setAudioTags]
   )
-
-  useEffect(() => {
-    window.path.get('output').then((res) => {
-      form.setFieldValue('outputPath', res)
-      setIsLoading(false)
-    })
-  }, [form])
 
   return (
     <>
@@ -238,6 +241,14 @@ export function AudioEdit(): ReactNode {
           </Flex>
         </Form.Item>
       </Form>
+
+      <FloatButton
+        icon={<ExclamationCircleOutlined />}
+        tooltip={{
+          title:
+            '由于限制，wav 等部分音频格式不支持在文件管理器中显示标题、作者等信息，建议使用 mp3 或 flac 格式'
+        }}
+      />
     </>
   )
 }

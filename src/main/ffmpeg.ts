@@ -5,6 +5,8 @@ import ffprobeInstaller from '@ffprobe-installer/ffprobe'
 import Ffmpeg from 'fluent-ffmpeg'
 import { CutAudioOptions, SetAduioTagOptions } from '../shared/type'
 import type { FfprobeData, FfprobeStream } from 'fluent-ffmpeg'
+import { parseFilePath } from './api'
+import { AUDIO_FILE_EXTENSION } from '../shared/constants'
 
 /**
  * 在打包的构建中，二进制文件位于 app.asar 内，但它们只能从解包的副本中启动
@@ -122,6 +124,7 @@ ipcMain.handle('ffmpeg:setAudioTags', (_, options: SetAduioTagOptions): Promise<
   const {
     inputAudio,
     outputAudio,
+    coverPath,
     title,
     artist,
     album_artist,
@@ -144,17 +147,37 @@ ipcMain.handle('ffmpeg:setAudioTags', (_, options: SetAduioTagOptions): Promise<
     track,
     disc
   }
-
-  const outputOptions = ['-c copy']
+  const ext = parseFilePath(inputAudio).ext
+  const outputOptions: string[] = []
 
   for (const [key, value] of Object.entries(tags)) {
     if (value !== undefined) {
       outputOptions.push('-metadata', `${key}=${value}`)
     }
   }
+  console.log(ext)
+  switch (ext) {
+    case AUDIO_FILE_EXTENSION.MP3:
+      outputOptions.push('-c:a copy')
+      if (coverPath)
+        outputOptions.push(
+          '-map 0:a:0',
+          '-map 1:v:0',
+          '-c:v mjpeg',
+          '-id3v2_version 3',
+          '-disposition:v:0 attached_pic',
+          '-metadata:s:v title=Album cover',
+          '-metadata:s:v comment=Cover (Front)'
+        )
+      break
+    case AUDIO_FILE_EXTENSION.FLAC:
+      break
+  }
 
   return new Promise<void>((resolve, reject) => {
-    Ffmpeg(inputAudio)
+    const work = Ffmpeg(inputAudio)
+    if (coverPath) work.input(coverPath)
+    work
       .outputOptions(outputOptions)
       .on('error', (error) => {
         reject(error)

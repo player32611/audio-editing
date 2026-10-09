@@ -190,6 +190,7 @@ export default function List(): ReactNode {
           pagination={{
             total: data.length,
             showTotal: (total) => `共 ${total} 条`,
+            showSizeChanger: false,
             placement: ['bottomCenter'],
             hideOnSinglePage: true,
             pageSize

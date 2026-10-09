@@ -10,7 +10,7 @@ import type {
   WorkStatus,
   WorkHistoryTable,
   CutAudioOptions,
-  FileName,
+  FileInfo,
   SetAduioTagOptions
 } from '../shared/type'
 import type { GetVoiceOptions } from '@sellmind/video-editor-core'
@@ -28,7 +28,8 @@ declare global {
       openFolder: (path: string) => Promise<string>
       showItemInFolder: (path: string) => Promise<boolean>
       existsSync: (path: string) => Promise<boolean>
-      parseFilePath: (filePath: string) => Promise<FileName>
+      parseFilePath: (filePath: string) => Promise<FileInfo>
+      loadImage: (filePath: string) => Promise<{ dataUrl: string }>
     }
     theme: {
       set: (theme: Theme) => Promise<Theme>

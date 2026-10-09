@@ -16,10 +16,11 @@ export type WorkStatus = '待处理' | '处理中' | '已完成' | '已中断'
 
 export type WorkType = '音频编辑' | '音频提取' | '音频裁剪' | '汉英转译'
 
-export interface FileName {
+export interface FileInfo {
   name: string
   ext: string
   fullName: string
+  dir: string
 }
 
 export interface AudioTag {

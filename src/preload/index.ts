@@ -20,7 +20,8 @@ const api = {
   openFolder: (path: string) => ipcRenderer.invoke('api:openFolder', path),
   showItemInFolder: (path: string) => ipcRenderer.invoke('api:showItemInFolder', path),
   existsSync: (path: string) => ipcRenderer.invoke('api:existsSync', path),
-  parseFilePath: (filePath: string) => ipcRenderer.invoke('api:parseFilePath', filePath)
+  parseFilePath: (filePath: string) => ipcRenderer.invoke('api:parseFilePath', filePath),
+  loadImage: (filePath: string) => ipcRenderer.invoke('api:loadImage', filePath)
 }
 
 const theme = {

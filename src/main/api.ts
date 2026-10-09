@@ -1,7 +1,8 @@
 import { shell, ipcMain, dialog, OpenDialogOptions } from 'electron'
 import fs from 'fs'
 import path from 'path'
-import type { FileName } from '../shared/type'
+import type { FileInfo } from '../shared/type'
+import { readFile } from 'fs/promises'
 
 ipcMain.handle('api:selectFile', async (_, options: OpenDialogOptions) => {
   const { canceled, filePaths } = await dialog.showOpenDialog({
@@ -42,14 +43,29 @@ ipcMain.handle('api:existsSync', async (_, path: string): Promise<boolean> => {
   return fs.existsSync(path)
 })
 
-ipcMain.handle('api:parseFilePath', async (_, filePath): Promise<FileName> => {
-  const ext = path.extname(filePath) // 含点，如 ".txt"
-  const fullName = path.basename(filePath) // 含扩展名
-  const name = path.basename(filePath, ext) // 不含扩展名
+export const parseFilePath = (filePath: string): FileInfo => {
+  const ext = path.extname(filePath)
+  const fullName = path.basename(filePath)
+  const name = path.basename(filePath, ext)
 
   return {
     name,
     ext: ext.startsWith('.') ? ext.slice(1) : ext,
-    fullName
+    fullName,
+    dir: path.dirname(filePath)
+  }
+}
+
+ipcMain.handle('api:parseFilePath', async (_, filePath): Promise<FileInfo> => {
+  return parseFilePath(filePath)
+})
+
+ipcMain.handle('api:loadImage', async (_, filePath: string): Promise<{ dataUrl: string }> => {
+  const ext = parseFilePath(filePath).ext
+
+  const buffer = await readFile(filePath)
+
+  return {
+    dataUrl: `data:image/${ext};base64,${buffer.toString('base64')}`
   }
 })

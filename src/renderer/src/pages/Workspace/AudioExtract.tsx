@@ -16,7 +16,7 @@ import {
 import { FolderOpenOutlined, LeftOutlined } from '@ant-design/icons'
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router'
-import useSellmind from '@renderer/hooks/useSellmind'
+import { useTools } from '@renderer/hooks'
 import { formatSeconds } from '@renderer/utils'
 import { AUDIO_FILE_EXTENSION, VIDEO_FILE_EXTENSION } from '../../../../shared/constants'
 import type { AudioFileExtension } from '../../../../shared/type'
@@ -40,7 +40,7 @@ export default function AudioExtract(): ReactNode {
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [isSelecting, setIsSelecting] = useState<boolean>(false)
   const navigate = useNavigate()
-  const { getVoice } = useSellmind()
+  const { getVoice } = useTools()
 
   const onSelectInput = useCallback(async (): Promise<void> => {
     if (isSelecting) return
@@ -83,17 +83,18 @@ export default function AudioExtract(): ReactNode {
   }, [form])
 
   const onFinish: FormProps<FieldType>['onFinish'] = useCallback(
-    (values) => {
-      getVoice(
-        {
-          ...values,
-          startTime: values.audioRange[0],
-          endTime: values.audioRange[1]
-        },
-        () => {
-          navigate('/workspace')
-        }
-      )
+    async ({ outputPath, outputName, audioFormat, audioBitrate, ...params }) => {
+      setIsLoading(true)
+      await getVoice({
+        outputAudio: `${outputPath}\\${outputName}.${audioFormat}`,
+        audioFormat,
+        audioBitrate: `${audioBitrate}k`,
+        startTime: params.audioRange[0],
+        duration: params.audioRange[1] - params.audioRange[0],
+        ...params
+      })
+      setIsLoading(false)
+      navigate('/workspace')
     },
     [navigate, getVoice]
   )
