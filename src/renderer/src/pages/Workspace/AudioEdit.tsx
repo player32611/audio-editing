@@ -16,7 +16,7 @@ import { FolderOpenOutlined, LeftOutlined, ExclamationCircleOutlined } from '@an
 import { useCallback, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router'
 import { AUDIO_FILE_EXTENSION, IMAGE_FILE_EXTENSION } from '../../../../shared/constants'
-import type { AudioTag } from '../../../../shared/type'
+import type { AudioTag, FileInfo } from '../../../../shared/type'
 import { useTools } from '@renderer/hooks'
 
 interface FieldType extends AudioTag {
@@ -30,19 +30,28 @@ const { Text } = Typography
 
 export function AudioEdit(): ReactNode {
   const [form] = Form.useForm<FieldType>()
+  const [inputFile, setInputFile] = useState<FileInfo | null>(null)
   const [coverSrc, setCoverSrc] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [isSelecting, setIsSelecting] = useState<boolean>(false)
-  const disabled = !form.getFieldValue('inputAudio')
   const navigate = useNavigate()
   const { setAudioTags } = useTools()
+
+  const checkExt = useCallback((ext: string) => {
+    if (
+      ext === AUDIO_FILE_EXTENSION.AAC ||
+      ext === AUDIO_FILE_EXTENSION.OGG ||
+      ext === AUDIO_FILE_EXTENSION.WAV
+    )
+      return false
+    return true
+  }, [])
 
   const onReset = useCallback(async () => {
     setIsLoading(true)
     form.resetFields()
+    setInputFile(null)
     setCoverSrc(null)
-    const defaultPath = await window.path.get('output')
-    form.setFieldValue('outputPath', defaultPath)
     setIsLoading(false)
   }, [form])
 
@@ -61,9 +70,15 @@ export function AudioEdit(): ReactNode {
     setIsLoading(true)
     const inputName = await window.api.parseFilePath(inputPath)
     const data = await window.ffmpeg.getMediaData(inputPath)
-    console.log(data)
-    onReset()
-    form.setFieldsValue({ inputAudio: inputPath, outputName: inputName.name, ...data.format.tags })
+    const outputPath = await window.path.get('output')
+    await onReset()
+    form.setFieldsValue({
+      inputAudio: inputPath,
+      outputName: inputName.name,
+      outputPath,
+      ...data.format.tags
+    })
+    setInputFile(inputName)
     setIsLoading(false)
 
     window.ffmpeg.getAudioCover(inputPath).then((res) => {
@@ -76,7 +91,7 @@ export function AudioEdit(): ReactNode {
   }, [form, isSelecting, onReset])
 
   const onSelectOutput = useCallback(async (): Promise<void> => {
-    if (isSelecting || disabled) return
+    if (isSelecting || !inputFile) return
 
     setIsSelecting(true)
     const outputPath = await window.api.selectFolder({
@@ -84,10 +99,10 @@ export function AudioEdit(): ReactNode {
     })
     form.setFieldValue('outputPath', outputPath)
     setIsSelecting(false)
-  }, [form, isSelecting, disabled])
+  }, [form, inputFile, isSelecting])
 
   const onSelectCover = useCallback(async () => {
-    if (isSelecting || disabled) return
+    if (isSelecting || !inputFile || !checkExt(inputFile.ext)) return
 
     setIsSelecting(true)
     const coverPath = await window.api.selectFile({
@@ -100,7 +115,7 @@ export function AudioEdit(): ReactNode {
       setCoverSrc(imageSrc.dataUrl)
     }
     setIsSelecting(false)
-  }, [form, isSelecting, disabled])
+  }, [form, inputFile, isSelecting, checkExt])
 
   const onFinish: FormProps<FieldType>['onFinish'] = useCallback(
     async ({ inputAudio, outputPath, outputName, ...tags }) => {
@@ -167,7 +182,7 @@ export function AudioEdit(): ReactNode {
           <Input
             suffix={<FolderOpenOutlined onClick={onSelectOutput} />}
             onClick={onSelectOutput}
-            disabled={disabled}
+            disabled={!inputFile}
           />
         </Form.Item>
 
@@ -182,18 +197,18 @@ export function AudioEdit(): ReactNode {
             { required: true, message: '请设置输出文件名' }
           ]}
         >
-          <Input disabled={disabled} />
+          <Input disabled={!inputFile} />
         </Form.Item>
 
         <Form.Item<FieldType>
           name="coverPath"
           label="封面"
-          tooltip="由于限制，"
+          tooltip="由于限制，WAV / AAC / OGG 暂不支持设置封面"
         >
           <Input
             suffix={<FolderOpenOutlined onClick={onSelectCover} />}
             onClick={onSelectCover}
-            disabled={disabled}
+            disabled={!inputFile || !checkExt(inputFile.ext)}
           />
         </Form.Item>
 
@@ -204,39 +219,39 @@ export function AudioEdit(): ReactNode {
         ) : null}
 
         <Form.Item<FieldType> name="title" label="标题">
-          <Input disabled={disabled} />
+          <Input disabled={!inputFile} />
         </Form.Item>
 
         <Form.Item<FieldType> name="artist" label="参与创作的艺术家">
-          <Input disabled={disabled} />
+          <Input disabled={!inputFile} />
         </Form.Item>
 
         <Form.Item<FieldType> name="album_artist" label="唱片集艺术家">
-          <Input disabled={disabled} />
+          <Input disabled={!inputFile} />
         </Form.Item>
 
         <Form.Item<FieldType> name="album" label="唱片集">
-          <Input disabled={disabled} />
+          <Input disabled={!inputFile} />
         </Form.Item>
 
         <Form.Item<FieldType> name="composer" label="作曲家">
-          <Input disabled={disabled} />
+          <Input disabled={!inputFile} />
         </Form.Item>
 
         <Form.Item<FieldType> name="genre" label="流派">
-          <Input disabled={disabled} />
+          <Input disabled={!inputFile} />
         </Form.Item>
 
         <Form.Item<FieldType> name="date" label="年份">
-          <Input disabled={disabled} />
+          <Input disabled={!inputFile} />
         </Form.Item>
 
         <Form.Item<FieldType> name="track" label="曲目编号">
-          <Input disabled={disabled} />
+          <Input disabled={!inputFile} />
         </Form.Item>
 
         <Form.Item<FieldType> name="disc" label="唱片编号">
-          <Input disabled={disabled} />
+          <Input disabled={!inputFile} />
         </Form.Item>
 
         <Form.Item wrapperCol={{ span: 24 }}>
@@ -255,7 +270,8 @@ export function AudioEdit(): ReactNode {
         icon={<ExclamationCircleOutlined />}
         tooltip={{
           title:
-            '由于限制，wav 等部分音频格式不支持在文件管理器中显示标题、作者等信息，建议使用 mp3 或 flac 格式'
+            '由于限制，wav 等部分音频格式不支持在文件管理器中显示标题、作者等信息，建议使用 mp3 或 flac 格式',
+          placement: 'left'
         }}
       />
     </>

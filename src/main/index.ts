@@ -58,13 +58,7 @@ function createWindow(): void {
       cancelId: 0
     })
 
-    if (response === 1) {
-      const statusId = selectStatus('已中断')
-      workList.forEach((_, id) => {
-        updateWorkHistory(id, { statusId })
-      })
-      mainWindow.destroy()
-    }
+    if (response === 1) mainWindow.destroy()
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -156,6 +150,14 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
   }
+})
+
+app.on('before-quit', async () => {
+  console.log('quit')
+  const statusId = selectStatus('已中断')
+  workList.forEach((_, id) => {
+    updateWorkHistory(id, { statusId })
+  })
 })
 
 // 在这个文件里，你可以加入你应用其余的特定主进程代码
