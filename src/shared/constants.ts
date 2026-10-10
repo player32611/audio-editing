@@ -5,6 +5,7 @@ export const STORE_KEY = {
 
 export const AUDIO_FILE_EXTENSION = {
   MP3: 'mp3',
+  M4A: 'm4a',
   AAC: 'aac',
   OGG: 'ogg',
   WAV: 'wav',

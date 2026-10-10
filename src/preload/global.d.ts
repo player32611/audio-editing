@@ -41,10 +41,8 @@ declare global {
       set: (type: Path, path: string) => Promise<string>
       get: (type: Path) => Promise<string>
     }
-    sellmind: {
-      getVoice: (options: GetVoiceOptions) => Promise<void>
-    }
     ffmpeg: {
+      getVoice: (options: GetVoiceOptions) => Promise<void>
       cutAudio: (options: CutAudioOptions) => Promise<void>
       getMediaData: (path: string) => Promise<FfprobeData>
       getAudioStream: (path: string) => Promise<FfprobeStream>

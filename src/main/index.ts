@@ -9,7 +9,6 @@ import { setupFfmpeg } from './ffmpeg'
 import { initDatabase, selectStatus, updateWorkHistory } from './database'
 import { initStore } from './store'
 
-// Make the bundled FFmpeg/FFprobe available to @sellmind/video-editor-core.
 setupFfmpeg()
 
 let mainWindow: BrowserWindow | null = null
@@ -162,4 +161,3 @@ app.on('window-all-closed', () => {
 // 在这个文件里，你可以加入你应用其余的特定主进程代码
 // 你也可以把它们放在不同的文件里，然后在这里引入。
 import './api'
-import './sellmind'

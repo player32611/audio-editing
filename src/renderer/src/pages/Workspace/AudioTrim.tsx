@@ -26,7 +26,7 @@ interface FieldType {
   inputAudio: string
   outputPath: string
   outputName: string
-  audioFormat: AudioFileExtension
+  audioExtension: AudioFileExtension
   audioBitrate: number
   audioQuality: number
   audioRange: [number, number]
@@ -84,11 +84,11 @@ export default function AudioTrim(): ReactNode {
   }, [form])
 
   const onFinish: FormProps<FieldType>['onFinish'] = useCallback(
-    async ({ outputPath, outputName, audioFormat, audioBitrate, audioRange, ...params }) => {
+    async ({ outputPath, outputName, audioExtension, audioBitrate, audioRange, ...params }) => {
       setIsLoading(true)
       await cutAudio({
-        outputAudio: `${outputPath}\\${outputName}.${audioFormat}`,
-        audioFormat,
+        outputAudio: `${outputPath}\\${outputName}.${audioExtension}`,
+        audioExtension,
         audioBitrate: `${audioBitrate}k`,
         startTime: audioRange[0],
         duration: audioRange[1] - audioRange[0],
@@ -168,7 +168,7 @@ export default function AudioTrim(): ReactNode {
           <Input />
         </Form.Item>
 
-        <Form.Item<FieldType> name="audioFormat" label="音频格式" initialValue="mp3">
+        <Form.Item<FieldType> name="audioExtension" label="音频格式" initialValue="mp3">
           <Radio.Group>
             {Object.values(AUDIO_FILE_EXTENSION).map((val) => (
               <Radio.Button value={val} key={val}>

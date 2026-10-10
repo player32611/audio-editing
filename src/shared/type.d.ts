@@ -64,10 +64,20 @@ export interface WorkHistoryInsert extends WorkHistoryTable {
   time?: string
 }
 
+export interface GetVoiceOptions {
+  inputVideo: string
+  outputAudio: string
+  audioExtension: AudioFileExtension
+  audioBitrate: string
+  audioQuality: number
+  startTime: number
+  duration: number
+}
+
 export interface CutAudioOptions {
   inputAudio: string
   outputAudio: string
-  audioFormat: AudioFileExtension
+  audioExtension: AudioFileExtension
   audioBitrate: string
   audioQuality: number
   startTime: number

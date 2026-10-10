@@ -11,7 +11,7 @@ interface useToolsData {
 interface getVoiceParams {
   inputVideo: string
   outputAudio: string
-  audioFormat: AudioFileExtension
+  audioExtension: AudioFileExtension
   audioBitrate: string
   audioQuality: number
   startTime: number
@@ -21,7 +21,7 @@ interface getVoiceParams {
 interface CutAudioParams {
   inputAudio: string
   outputAudio: string
-  audioFormat: AudioFileExtension
+  audioExtension: AudioFileExtension
   audioBitrate: string
   audioQuality: number
   startTime: number
@@ -140,7 +140,7 @@ export function useTools(): useToolsData {
         statusId: workStatus
       })
 
-      window.sellmind
+      window.ffmpeg
         .getVoice(params)
         .then(() => {
           onSuccess(id, outputInfo.fullName)
@@ -169,8 +169,6 @@ export function useTools(): useToolsData {
         typeId: type,
         statusId: workStatus
       })
-
-      console.log(params)
 
       window.ffmpeg
         .cutAudio(params)

@@ -3,10 +3,11 @@ import { delimiter, dirname } from 'path'
 import ffmpegInstaller from '@ffmpeg-installer/ffmpeg'
 import ffprobeInstaller from '@ffprobe-installer/ffprobe'
 import Ffmpeg from 'fluent-ffmpeg'
-import { AudioFileExtension, CutAudioOptions, SetAduioTagOptions } from '../shared/type'
+import { CutAudioOptions, GetVoiceOptions, SetAduioTagOptions } from '../shared/type'
 import type { FfprobeData, FfprobeStream } from 'fluent-ffmpeg'
 import { parseFilePath } from './api'
 import { AUDIO_FILE_EXTENSION } from '../shared/constants'
+import { getCodec, getFormat } from '../shared/utils'
 
 /**
  * 在打包的构建中，二进制文件位于 app.asar 内，但它们只能从解包的副本中启动
@@ -18,8 +19,6 @@ function unpacked(binaryPath: string): string {
 }
 
 /**
- * 指向捆绑的 FFmpeg/FFprobe 到 @sellmind/video-editor-core
- *
  * 这个库以两种方式调用 FFmpeg：fluent-ffmpeg（会遵循 FFMPEG_PATH / FFPROBE_PATH）
  * 和原生的 `exec('ffmpeg …')` shell 命令（需要二进制文件在 PATH 中）。
  * 同时设置两者可以覆盖所有代码路径，而无需用户自己安装 FFmpeg
@@ -37,46 +36,44 @@ export function setupFfmpeg(): void {
   process.env.PATH = [...binDirs, process.env.PATH ?? ''].join(delimiter)
 }
 
-export const getCodec = (format: AudioFileExtension): string => {
-  switch (format) {
-    case 'aac':
-      return 'adts'
-    default:
-      return format
-  }
-}
+ipcMain.handle('ffmpeg:getVoice', (_, options: GetVoiceOptions) => {
+  return new Promise<void>((resolve, reject) => {
+    Ffmpeg(options.inputVideo)
+      .noVideo()
+      .audioCodec(getCodec(options.audioExtension))
+      .format(getFormat(options.audioExtension))
+      .audioBitrate(options.audioBitrate)
+      .audioQuality(options.audioQuality)
+      .setStartTime(options.startTime)
+      .duration(options.duration)
+      .on('error', (err) => {
+        reject(err)
+      })
+      .on('end', () => {
+        resolve()
+      })
+      .save(options.outputAudio)
+  })
+})
 
-ipcMain.handle(
-  'ffmpeg:cutAudio',
-  (
-    _,
-    {
-      inputAudio,
-      outputAudio,
-      audioFormat,
-      audioBitrate,
-      audioQuality,
-      startTime,
-      duration
-    }: CutAudioOptions
-  ) => {
-    return new Promise<void>((reslove, reject) => {
-      Ffmpeg(inputAudio)
-        .setStartTime(startTime)
-        .duration(duration)
-        .format(getCodec(audioFormat))
-        .audioBitrate(audioBitrate)
-        .audioQuality(audioQuality)
-        .on('error', (err) => {
-          reject(err)
-        })
-        .on('end', () => {
-          reslove()
-        })
-        .save(outputAudio)
-    })
-  }
-)
+ipcMain.handle('ffmpeg:cutAudio', (_, options: CutAudioOptions) => {
+  return new Promise<void>((reslove, reject) => {
+    Ffmpeg(options.inputAudio)
+      .audioCodec(getCodec(options.audioExtension))
+      .format(getFormat(options.audioExtension))
+      .audioBitrate(options.audioBitrate)
+      .audioQuality(options.audioQuality)
+      .setStartTime(options.startTime)
+      .duration(options.duration)
+      .on('error', (err) => {
+        reject(err)
+      })
+      .on('end', () => {
+        reslove()
+      })
+      .save(options.outputAudio)
+  })
+})
 
 ipcMain.handle('ffmpeg:getMediaData', (_, path: string) => {
   return new Promise<FfprobeData>((resolve, reject) => {
@@ -212,13 +209,44 @@ ipcMain.handle('ffmpeg:setAudioTags', (_, options: SetAduioTagOptions): Promise<
         // 因此只复制音频流与标签信息，不嵌入封面。
         outputOptions.push('-map', '0:a:0')
         break
+      case AUDIO_FILE_EXTENSION.AAC:
+        // AAC(.aac 为 ADTS 裸流) 无法内嵌封面，只能复制音频流与标签信息。
+        outputOptions.push('-map', '0:a:0')
+        break
+      case AUDIO_FILE_EXTENSION.M4A:
+        outputOptions.push(
+          '-map',
+          '0:a:0',
+          '-map',
+          '1:v:0',
+          '-c:v',
+          'mjpeg',
+          '-disposition:v:0',
+          'attached_pic',
+          '-metadata:s:v',
+          'title=Album cover',
+          '-metadata:s:v',
+          'comment=Cover (front)'
+        )
+        break
+      case AUDIO_FILE_EXTENSION.OGG:
+        // Ogg muxer 不接受 mjpeg 视频流（不似 FLAC 会把封面缓存进 METADATA_BLOCK_PICTURE），
+        // 强行映射封面会报 "Error initializing output stream 0:1"。故只复制音频流与标签。
+        outputOptions.push('-map', '0:a:0')
+        break
     }
   }
 
   return new Promise<void>((resolve, reject) => {
     const work = Ffmpeg(inputAudio)
-    // 仅 MP3 / FLAC 支持内嵌封面；WAV 不支持，添加封面输入只会产生未使用的第二输入
-    if (coverPath && ext !== AUDIO_FILE_EXTENSION.WAV) work.input(coverPath)
+    // 仅 MP3 / FLAC / M4A 支持内嵌封面；WAV / AAC / OGG 不支持，添加封面输入只会产生未使用的第二输入
+    if (
+      coverPath &&
+      ext !== AUDIO_FILE_EXTENSION.WAV &&
+      ext !== AUDIO_FILE_EXTENSION.AAC &&
+      ext !== AUDIO_FILE_EXTENSION.OGG
+    )
+      work.input(coverPath)
     work
       .outputOptions(...outputOptions)
       .on('error', (error) => {

@@ -3,6 +3,7 @@ import { electronAPI } from '@electron-toolkit/preload'
 import type {
   CutAudioOptions,
   Database,
+  GetVoiceOptions,
   Path,
   SetAduioTagOptions,
   Theme,
@@ -11,7 +12,6 @@ import type {
   WorkStatus,
   WorkType
 } from '../shared/type'
-import type { GetVoiceOptions } from '@sellmind/video-editor-core'
 
 // Custom APIs for renderer
 const api = {
@@ -42,11 +42,8 @@ const path = {
   get: (type: Path) => ipcRenderer.invoke('path:get', type)
 }
 
-const sellmind = {
-  getVoice: (options: GetVoiceOptions) => ipcRenderer.invoke('sellmind:getVoice', options)
-}
-
 const ffmpeg = {
+  getVoice: (options: GetVoiceOptions) => ipcRenderer.invoke('ffmpeg:getVoice', options),
   cutAudio: (options: CutAudioOptions) => ipcRenderer.invoke('ffmpeg:cutAudio', options),
   getMediaData: (path: string) => ipcRenderer.invoke('ffmpeg:getMediaData', path),
   getAudioStream: (path: string) => ipcRenderer.invoke('ffmpeg:getAudioStream', path),
@@ -95,7 +92,6 @@ if (process.contextIsolated) {
     contextBridge.exposeInMainWorld('api', api)
     contextBridge.exposeInMainWorld('theme', theme)
     contextBridge.exposeInMainWorld('path', path)
-    contextBridge.exposeInMainWorld('sellmind', sellmind)
     contextBridge.exposeInMainWorld('ffmpeg', ffmpeg)
     contextBridge.exposeInMainWorld('database', database)
     contextBridge.exposeInMainWorld('work', work)
@@ -107,7 +103,6 @@ if (process.contextIsolated) {
   window.api = api
   window.theme = theme
   window.path = path
-  window.sellmind = sellmind
   window.ffmpeg = ffmpeg
   window.database = database
   window.work = work
