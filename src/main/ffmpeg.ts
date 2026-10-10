@@ -3,7 +3,7 @@ import { delimiter, dirname } from 'path'
 import ffmpegInstaller from '@ffmpeg-installer/ffmpeg'
 import ffprobeInstaller from '@ffprobe-installer/ffprobe'
 import Ffmpeg from 'fluent-ffmpeg'
-import { CutAudioOptions, SetAduioTagOptions } from '../shared/type'
+import { AudioFileExtension, CutAudioOptions, SetAduioTagOptions } from '../shared/type'
 import type { FfprobeData, FfprobeStream } from 'fluent-ffmpeg'
 import { parseFilePath } from './api'
 import { AUDIO_FILE_EXTENSION } from '../shared/constants'
@@ -37,6 +37,15 @@ export function setupFfmpeg(): void {
   process.env.PATH = [...binDirs, process.env.PATH ?? ''].join(delimiter)
 }
 
+export const getCodec = (format: AudioFileExtension): string => {
+  switch (format) {
+    case 'aac':
+      return 'adts'
+    default:
+      return format
+  }
+}
+
 ipcMain.handle(
   'ffmpeg:cutAudio',
   (
@@ -55,11 +64,11 @@ ipcMain.handle(
       Ffmpeg(inputAudio)
         .setStartTime(startTime)
         .duration(duration)
-        .format(audioFormat)
+        .format(getCodec(audioFormat))
         .audioBitrate(audioBitrate)
         .audioQuality(audioQuality)
-        .on('error', () => {
-          reject()
+        .on('error', (err) => {
+          reject(err)
         })
         .on('end', () => {
           reslove()
@@ -155,30 +164,63 @@ ipcMain.handle('ffmpeg:setAudioTags', (_, options: SetAduioTagOptions): Promise<
       outputOptions.push('-metadata', `${key}=${value}`)
     }
   }
-  console.log(ext)
-  switch (ext) {
-    case AUDIO_FILE_EXTENSION.MP3:
-      outputOptions.push('-c:a copy')
-      if (coverPath)
+
+  outputOptions.push('-c:a', 'copy')
+  if (coverPath) {
+    switch (ext) {
+      case AUDIO_FILE_EXTENSION.MP3:
+        if (coverPath)
+          outputOptions.push(
+            '-map',
+            '0:a:0',
+            '-map',
+            '1:v:0',
+            '-c:v',
+            'mjpeg',
+            '-id3v2_version',
+            '3',
+            '-disposition:v:0',
+            'attached_pic',
+            '-metadata:s:v',
+            'title=Album cover',
+            '-metadata:s:v',
+            'comment=Cover (Front)'
+          )
+        break
+      case AUDIO_FILE_EXTENSION.FLAC:
         outputOptions.push(
-          '-map 0:a:0',
-          '-map 1:v:0',
-          '-c:v mjpeg',
-          '-id3v2_version 3',
-          '-disposition:v:0 attached_pic',
-          '-metadata:s:v title=Album cover',
-          '-metadata:s:v comment=Cover (Front)'
+          '-map',
+          '0:a:0', // 原音频流
+          '-map',
+          '1:v:0', // 封面图片
+          '-c:v',
+          'mjpeg', // 封面转码为 JPEG（Windows 资源管理器只稳定识别 JPEG/PNG）
+          '-disposition:v:0',
+          'attached_pic', // 标记为封面
+          '-metadata:s:v',
+          'title=Album cover',
+          '-metadata:s:v',
+          'comment=Cover (front)',
+          '-f',
+          'flac' // 输出 FLAC
         )
-      break
-    case AUDIO_FILE_EXTENSION.FLAC:
-      break
+        break
+      case AUDIO_FILE_EXTENSION.WAV:
+        // WAV(RIFF) 无法内嵌封面：Windows 资源管理器读取的是非标准 id3 块，FFmpeg 写不进去。
+        // 若把封面映射为 attached_pic 视频流，WAV muxer 无法写入视频流，
+        // 会报 "Error initializing output stream 0:1" / "Could not write header"。
+        // 因此只复制音频流与标签信息，不嵌入封面。
+        outputOptions.push('-map', '0:a:0')
+        break
+    }
   }
 
   return new Promise<void>((resolve, reject) => {
     const work = Ffmpeg(inputAudio)
-    if (coverPath) work.input(coverPath)
+    // 仅 MP3 / FLAC 支持内嵌封面；WAV 不支持，添加封面输入只会产生未使用的第二输入
+    if (coverPath && ext !== AUDIO_FILE_EXTENSION.WAV) work.input(coverPath)
     work
-      .outputOptions(outputOptions)
+      .outputOptions(...outputOptions)
       .on('error', (error) => {
         reject(error)
       })

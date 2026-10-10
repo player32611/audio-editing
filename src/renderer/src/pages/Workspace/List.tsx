@@ -10,7 +10,7 @@ import {
   type TableProps
 } from 'antd'
 import {
-  AudioOutlined,
+  ExportOutlined,
   DeleteOutlined,
   EditOutlined,
   PlusOutlined,
@@ -209,7 +209,7 @@ export default function List(): ReactNode {
           onClick={() => navigate('/workspace/audioEdit')}
         />
         <FloatButton
-          icon={<AudioOutlined />}
+          icon={<ExportOutlined />}
           tooltip={{
             title: '音频提取',
             color: 'blue',

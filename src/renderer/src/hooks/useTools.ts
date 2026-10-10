@@ -170,6 +170,8 @@ export function useTools(): useToolsData {
         statusId: workStatus
       })
 
+      console.log(params)
+
       window.ffmpeg
         .cutAudio(params)
         .then(() => {
@@ -188,7 +190,7 @@ export function useTools(): useToolsData {
   const setAudioTags = useCallback(
     async (params: SetAudioTagsParams) => {
       const checked = await checkPath(params.inputAudio, params.outputAudio, params.coverPath)
-      if (!checked) return
+      if (!checked) throw new Error()
 
       const outputInfo = await window.api.parseFilePath(params.outputAudio)
       const type = await window.database.selectType('音频编辑')

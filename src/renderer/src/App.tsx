@@ -8,11 +8,11 @@ const { Header, Content } = Layout
 function App(): React.JSX.Element {
   return (
     <ThemeProvider>
-      <Layout>
+      <Layout style={{ height: '100%', width: '100%' }}>
         <Header style={{ padding: 0 }}>
           <LayoutMenu />
         </Header>
-        <Content style={{ flex: 1 }}>
+        <Content style={{ flex: 1, overflow: 'auto' }}>
           <Outlet />
         </Content>
       </Layout>

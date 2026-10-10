@@ -61,6 +61,7 @@ export function AudioEdit(): ReactNode {
     setIsLoading(true)
     const inputName = await window.api.parseFilePath(inputPath)
     const data = await window.ffmpeg.getMediaData(inputPath)
+    console.log(data)
     onReset()
     form.setFieldsValue({ inputAudio: inputPath, outputName: inputName.name, ...data.format.tags })
     setIsLoading(false)
@@ -105,13 +106,17 @@ export function AudioEdit(): ReactNode {
     async ({ inputAudio, outputPath, outputName, ...tags }) => {
       setIsLoading(true)
       const { ext } = await window.api.parseFilePath(inputAudio)
-      await setAudioTags({
+      setAudioTags({
         inputAudio,
         outputAudio: `${outputPath}\\${outputName}.${ext}`,
         ...tags
       })
-      setIsLoading(false)
-      navigate('/workspace')
+        .then(() => {
+          navigate('/workspace')
+        })
+        .finally(() => {
+          setIsLoading(false)
+        })
     },
     [navigate, setAudioTags]
   )
@@ -180,7 +185,11 @@ export function AudioEdit(): ReactNode {
           <Input disabled={disabled} />
         </Form.Item>
 
-        <Form.Item<FieldType> name="coverPath" label="封面">
+        <Form.Item<FieldType>
+          name="coverPath"
+          label="封面"
+          tooltip="由于限制，"
+        >
           <Input
             suffix={<FolderOpenOutlined onClick={onSelectCover} />}
             onClick={onSelectCover}

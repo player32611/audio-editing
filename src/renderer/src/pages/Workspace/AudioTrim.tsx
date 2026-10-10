@@ -84,14 +84,14 @@ export default function AudioTrim(): ReactNode {
   }, [form])
 
   const onFinish: FormProps<FieldType>['onFinish'] = useCallback(
-    async ({ outputPath, outputName, audioFormat, audioBitrate, ...params }) => {
+    async ({ outputPath, outputName, audioFormat, audioBitrate, audioRange, ...params }) => {
       setIsLoading(true)
       await cutAudio({
         outputAudio: `${outputPath}\\${outputName}.${audioFormat}`,
         audioFormat,
         audioBitrate: `${audioBitrate}k`,
-        startTime: params.audioRange[0],
-        duration: params.audioRange[1] - params.audioRange[0],
+        startTime: audioRange[0],
+        duration: audioRange[1] - audioRange[0],
         ...params
       })
       setIsLoading(false)

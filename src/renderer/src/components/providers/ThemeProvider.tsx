@@ -29,7 +29,7 @@ export default function ThemeProvider({ children }: { children: ReactNode }): Re
         }
       }}
     >
-      <App>{children}</App>
+      <App style={{ height: '100%', width: '100%' }}>{children}</App>
     </ConfigProvider>
   )
 }
