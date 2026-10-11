@@ -9,6 +9,7 @@ import List from '@renderer/pages/Workspace/List'
 import File from '@renderer/pages/Settings/Systems/File'
 import AudioTrim from '@renderer/pages/Workspace/AudioTrim'
 import { AudioEdit } from '@renderer/pages/Workspace/AudioEdit'
+import SpeechRecognition from '@renderer/pages/Workspace/SpeechRecognition'
 
 const router = createHashRouter([
   {
@@ -34,6 +35,10 @@ const router = createHashRouter([
           {
             path: 'audioEdit',
             element: <AudioEdit />
+          },
+          {
+            path: 'speechRecognition',
+            element: <SpeechRecognition />
           }
         ]
       },

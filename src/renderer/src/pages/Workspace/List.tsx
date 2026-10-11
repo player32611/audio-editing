@@ -13,6 +13,7 @@ import {
   ExportOutlined,
   DeleteOutlined,
   EditOutlined,
+  FontColorsOutlined,
   PlusOutlined,
   ScissorOutlined,
   TranslationOutlined
@@ -223,6 +224,15 @@ export default function List(): ReactNode {
             placement: 'left'
           }}
           onClick={() => navigate('/workspace/audioTrim')}
+        />
+        <FloatButton
+          icon={<FontColorsOutlined />}
+          tooltip={{
+            title: '语音识别',
+            color: 'blue',
+            placement: 'left'
+          }}
+          onClick={() => navigate('/workspace/speechRecognition')}
         />
         <FloatButton
           icon={<TranslationOutlined />}
