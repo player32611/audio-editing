@@ -2,7 +2,7 @@ import { AUDIO_FILE_EXTENSION, IMAGE_FILE_EXTENSION, VIDEO_FILE_EXTENSION } from
 
 export type Theme = 'dark' | 'light' | 'system'
 
-export type Path = 'output' | 'input'
+export type Path = 'output' | 'input' | 'cover'
 
 export type AudioFileExtension = (typeof AUDIO_FILE_EXTENSION)[keyof typeof AUDIO_FILE_EXTENSION]
 

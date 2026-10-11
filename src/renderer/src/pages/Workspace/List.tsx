@@ -29,7 +29,7 @@ export default function List(): ReactNode {
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [data, setData] = useState<WorkHistoryUnion[]>([])
   const [selectIds, setSelectIds] = useState<number[]>([])
-  const [pageSize, setPageSize] = useState<number>(0)
+  const [pageSize, setPageSize] = useState<number>(Math.floor((window.innerHeight - 260) / 65))
   const { message, modal } = App.useApp()
   const navigate = useNavigate()
 
@@ -82,9 +82,7 @@ export default function List(): ReactNode {
   )
 
   const onResize = useCallback(() => {
-    const allRows = document.querySelectorAll('.ant-table-tbody tr.ant-table-row')
-    if (!allRows.length) return
-    setPageSize(Math.floor((window.innerHeight - 260) / allRows[0].getBoundingClientRect().height))
+    setPageSize(Math.floor((window.innerHeight - 260) / 65))
   }, [])
 
   const onNavigate = useCallback(() => {

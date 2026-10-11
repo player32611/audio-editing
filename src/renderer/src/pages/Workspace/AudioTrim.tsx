@@ -71,7 +71,7 @@ export default function AudioTrim(): ReactNode {
     const outputPath = await window.api.selectFolder({
       defaultPath: form.getFieldValue('outputPath') || undefined
     })
-    form.setFieldValue('outputPath', outputPath)
+    if (outputPath) form.setFieldValue('outputPath', outputPath)
     setIsSelecting(false)
   }, [form, isSelecting])
 

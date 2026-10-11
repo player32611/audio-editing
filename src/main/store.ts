@@ -40,16 +40,9 @@ ipcMain.handle('path:get', (_, type: Path): string => {
   if (!store) throw new Error('本地 store 存储未初始化')
 
   let res = store.get(`${STORE_KEY.PATH}-${type}`)
-  if (!res) {
-    switch (type) {
-      case 'input':
-        res = app.getPath('downloads')
-        break
-      case 'output':
-        res = app.getPath('downloads')
-        break
-    }
-    store.set(`${STORE_KEY.PATH}-${type}`, res)
-  }
+  if (!res) res = app.getPath('downloads')
+
+  store.set(`${STORE_KEY.PATH}-${type}`, res)
+
   return res as string
 })

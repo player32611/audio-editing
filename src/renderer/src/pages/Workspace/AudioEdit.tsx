@@ -67,11 +67,12 @@ export function AudioEdit(): ReactNode {
     setIsSelecting(false)
     if (!inputPath) return
 
+    await onReset()
     setIsLoading(true)
     const inputName = await window.api.parseFilePath(inputPath)
     const data = await window.ffmpeg.getMediaData(inputPath)
     const outputPath = await window.path.get('output')
-    await onReset()
+    console.log(data)
     form.setFieldsValue({
       inputAudio: inputPath,
       outputName: inputName.name,
@@ -95,9 +96,9 @@ export function AudioEdit(): ReactNode {
 
     setIsSelecting(true)
     const outputPath = await window.api.selectFolder({
-      defaultPath: form.getFieldValue('outputPath') || undefined
+      defaultPath: form.getFieldValue('outputPath') || (await window.path.get('output'))
     })
-    form.setFieldValue('outputPath', outputPath)
+    if (outputPath) form.setFieldValue('outputPath', outputPath)
     setIsSelecting(false)
   }, [form, inputFile, isSelecting])
 
@@ -106,7 +107,7 @@ export function AudioEdit(): ReactNode {
 
     setIsSelecting(true)
     const coverPath = await window.api.selectFile({
-      defaultPath: form.getFieldValue('coverPath') || undefined,
+      defaultPath: form.getFieldValue('coverPath') || (await window.path.get('cover')),
       filters: [{ name: '图片', extensions: Object.values(IMAGE_FILE_EXTENSION) }]
     })
     if (coverPath) {
@@ -119,6 +120,7 @@ export function AudioEdit(): ReactNode {
 
   const onFinish: FormProps<FieldType>['onFinish'] = useCallback(
     async ({ inputAudio, outputPath, outputName, ...tags }) => {
+      console.log({ inputAudio, outputPath, outputName, ...tags })
       setIsLoading(true)
       const { ext } = await window.api.parseFilePath(inputAudio)
       setAudioTags({
@@ -222,15 +224,15 @@ export function AudioEdit(): ReactNode {
           <Input disabled={!inputFile} />
         </Form.Item>
 
-        <Form.Item<FieldType> name="artist" label="参与创作的艺术家">
+        <Form.Item<FieldType> name="artist" label="艺术家">
           <Input disabled={!inputFile} />
         </Form.Item>
 
-        <Form.Item<FieldType> name="album_artist" label="唱片集艺术家">
+        <Form.Item<FieldType> name="album_artist" label="专辑艺术家">
           <Input disabled={!inputFile} />
         </Form.Item>
 
-        <Form.Item<FieldType> name="album" label="唱片集">
+        <Form.Item<FieldType> name="album" label="专辑">
           <Input disabled={!inputFile} />
         </Form.Item>
 
@@ -242,7 +244,7 @@ export function AudioEdit(): ReactNode {
           <Input disabled={!inputFile} />
         </Form.Item>
 
-        <Form.Item<FieldType> name="date" label="年份">
+        <Form.Item<FieldType> name="date" label="发行日期">
           <Input disabled={!inputFile} />
         </Form.Item>
 

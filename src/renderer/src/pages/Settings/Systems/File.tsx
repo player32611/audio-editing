@@ -6,9 +6,11 @@ export default function File(): ReactNode {
   const [isSelecting, setIsSelecting] = useState<boolean>(false)
   const [inputPath, setInputPath] = useState<string>('')
   const [outputPath, setOutputPath] = useState<string>('')
+  const [coverPath, setCoverPath] = useState<string>('')
 
-  const onSelectInput = useCallback((): void => {
+  const onSelectInput = useCallback(() => {
     if (isSelecting) return
+
     setIsSelecting(true)
     window.api
       .selectFolder({ defaultPath: inputPath })
@@ -20,8 +22,9 @@ export default function File(): ReactNode {
       })
   }, [isSelecting, inputPath])
 
-  const onSelectOutput = useCallback((): void => {
+  const onSelectOutput = useCallback(() => {
     if (isSelecting) return
+
     setIsSelecting(true)
     window.api
       .selectFolder({ defaultPath: outputPath })
@@ -33,9 +36,24 @@ export default function File(): ReactNode {
       })
   }, [isSelecting, outputPath])
 
+  const onSelectCover = useCallback(() => {
+    if (isSelecting) return
+
+    setIsSelecting(true)
+    window.api
+      .selectFolder({ defaultPath: coverPath })
+      .then((res) => {
+        if (res) window.path.set('cover', res).then(setCoverPath)
+      })
+      .finally(() => {
+        setIsSelecting(false)
+      })
+  }, [isSelecting, coverPath])
+
   useEffect(() => {
     window.path.get('input').then(setInputPath)
     window.path.get('output').then(setOutputPath)
+    window.path.get('cover').then(setCoverPath)
   }, [])
 
   return (
@@ -61,6 +79,18 @@ export default function File(): ReactNode {
           style={{ flex: 1 }}
         />
         <Button type="link" onClick={() => window.api.openFolder(outputPath)}>
+          打开文件夹
+        </Button>
+      </Flex>
+      <Flex align="center" gap={10}>
+        <div>默认封面目录:</div>
+        <Input
+          value={coverPath}
+          suffix={<FolderOpenOutlined />}
+          onClick={onSelectCover}
+          style={{ flex: 1 }}
+        />
+        <Button type="link" onClick={() => window.api.openFolder(coverPath)}>
           打开文件夹
         </Button>
       </Flex>
