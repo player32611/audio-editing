@@ -31,7 +31,7 @@ interface CutAudioParams {
 interface SetAudioTagsParams extends AudioTag {
   inputAudio: string
   outputAudio: string
-  coverPath: string
+  coverPath?: string
 }
 
 export function useTools(): useToolsData {

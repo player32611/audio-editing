@@ -83,15 +83,24 @@ export default function AudioExtract(): ReactNode {
   }, [form])
 
   const onFinish: FormProps<FieldType>['onFinish'] = useCallback(
-    async ({ outputPath, outputName, audioExtension, audioBitrate, audioRange, ...params }) => {
+    async ({
+      inputVideo,
+      outputPath,
+      outputName,
+      audioExtension,
+      audioBitrate,
+      audioQuality,
+      audioRange
+    }) => {
       setIsLoading(true)
       await getVoice({
+        inputVideo,
         outputAudio: `${outputPath}\\${outputName}.${audioExtension}`,
         audioExtension,
         audioBitrate: `${audioBitrate}k`,
+        audioQuality,
         startTime: audioRange[0],
-        duration: audioRange[1] - audioRange[0],
-        ...params
+        duration: audioRange[1] - audioRange[0]
       })
       setIsLoading(false)
       navigate('/workspace')

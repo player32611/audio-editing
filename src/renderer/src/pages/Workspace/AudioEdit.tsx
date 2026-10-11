@@ -23,7 +23,7 @@ interface FieldType extends AudioTag {
   inputAudio: string
   outputPath: string
   outputName: string
-  coverPath: string
+  coverPath?: string
 }
 
 const { Text } = Typography
