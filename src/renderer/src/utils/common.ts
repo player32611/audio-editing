@@ -1,4 +1,4 @@
-import { WorkStatus } from '../../../shared/type'
+import { Language, WorkStatus } from '../../../shared/type'
 
 export const getStatusColor = (status: WorkStatus): string => {
   switch (status) {
@@ -43,4 +43,21 @@ export const formatSeconds = (
   const timePart = `${pad(m)}:${pad(s)}${msPart}`
 
   return h > 0 ? `${pad(h)}:${timePart}` : timePart
+}
+
+export const formatLanguage = (language: Language): string => {
+  switch (language) {
+    case 'auto':
+      return '自动'
+    case 'en':
+      return '英文'
+    case 'zh':
+      return '中文'
+    case 'ja':
+      return '日语'
+    case 'fr':
+      return '法语'
+    default:
+      return language
+  }
 }

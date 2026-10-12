@@ -7,6 +7,7 @@ export default function File(): ReactNode {
   const [inputPath, setInputPath] = useState<string>('')
   const [outputPath, setOutputPath] = useState<string>('')
   const [coverPath, setCoverPath] = useState<string>('')
+  const [userDataPath, setUserDataPath] = useState<string>('')
 
   const onSelectInput = useCallback(() => {
     if (isSelecting) return
@@ -54,6 +55,7 @@ export default function File(): ReactNode {
     window.path.get('input').then(setInputPath)
     window.path.get('output').then(setOutputPath)
     window.path.get('cover').then(setCoverPath)
+    window.path.getUserData().then(setUserDataPath)
   }, [])
 
   return (
@@ -91,6 +93,13 @@ export default function File(): ReactNode {
           style={{ flex: 1 }}
         />
         <Button type="link" onClick={() => window.api.openFolder(coverPath)}>
+          打开文件夹
+        </Button>
+      </Flex>
+      <Flex align="center" gap={10}>
+        <div>应用数据目录:</div>
+        <Input value={userDataPath} suffix={<FolderOpenOutlined />} style={{ flex: 1 }} />
+        <Button type="link" onClick={() => window.api.openFolder(userDataPath)}>
           打开文件夹
         </Button>
       </Flex>

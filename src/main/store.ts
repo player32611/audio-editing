@@ -46,3 +46,11 @@ ipcMain.handle('path:get', (_, type: Path): string => {
 
   return res as string
 })
+
+ipcMain.handle('path:getAppData', () => {
+  return app.getPath('appData')
+})
+
+ipcMain.handle('path:getUserData', () => {
+  return app.getPath('userData')
+})

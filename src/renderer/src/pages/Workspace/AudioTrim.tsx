@@ -56,10 +56,12 @@ export default function AudioTrim(): ReactNode {
 
     setIsLoading(true)
     const inputName = await window.api.parseFilePath(inputPath)
-    form.setFieldValue('inputAudio', inputPath)
-    form.setFieldValue('outputName', inputName.name)
     const data = await window.ffmpeg.getAudioStream(inputPath)
-    form.setFieldValue('audioRange', [0, data.duration || 0])
+    form.setFieldsValue({
+      inputAudio: inputPath,
+      outputName: inputName.name,
+      audioRange: [0, Number(data.duration) || 0]
+    })
     setInputData(data)
     setIsLoading(false)
   }, [form, isSelecting])

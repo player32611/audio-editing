@@ -7,6 +7,7 @@ import type {
   Path,
   SetAduioTagOptions,
   Theme,
+  WhisperOptions,
   WorkHistoryInsert,
   WorkHistoryTable,
   WorkStatus,
@@ -39,7 +40,9 @@ const theme = {
 
 const path = {
   set: (type: Path, path: string) => ipcRenderer.invoke('path:set', type, path),
-  get: (type: Path) => ipcRenderer.invoke('path:get', type)
+  get: (type: Path) => ipcRenderer.invoke('path:get', type),
+  getAppData: () => ipcRenderer.invoke('path:getAppData'),
+  getUserData: () => ipcRenderer.invoke('path:getUserData')
 }
 
 const ffmpeg = {
@@ -49,6 +52,10 @@ const ffmpeg = {
   getAudioStream: (path: string) => ipcRenderer.invoke('ffmpeg:getAudioStream', path),
   getAudioCover: (path: string) => ipcRenderer.invoke('ffmpeg:getAudioCover', path),
   setAudioTags: (options: SetAduioTagOptions) => ipcRenderer.invoke('ffmpeg:setAudioTags', options)
+}
+
+const whisper = {
+  transcribe: (options: WhisperOptions) => ipcRenderer.invoke('whisper:transcribe', options)
 }
 
 const database = {
@@ -93,6 +100,7 @@ if (process.contextIsolated) {
     contextBridge.exposeInMainWorld('theme', theme)
     contextBridge.exposeInMainWorld('path', path)
     contextBridge.exposeInMainWorld('ffmpeg', ffmpeg)
+    contextBridge.exposeInMainWorld('whisper', whisper)
     contextBridge.exposeInMainWorld('database', database)
     contextBridge.exposeInMainWorld('work', work)
   } catch (error) {
@@ -104,6 +112,7 @@ if (process.contextIsolated) {
   window.theme = theme
   window.path = path
   window.ffmpeg = ffmpeg
+  window.whisper = whisper
   window.database = database
   window.work = work
 }

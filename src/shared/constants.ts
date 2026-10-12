@@ -26,3 +26,29 @@ export const IMAGE_FILE_EXTENSION = {
   PNG: 'png',
   WEBP: 'webp'
 } as const
+
+export const LANGUAGE = {
+  ZH: 'zh',
+  EN: 'en',
+  JA: 'ja',
+  FR: 'fr',
+  AUTO: 'auto'
+} as const
+
+export const WHISPER_MODEL_TYPE = {
+  TINY: 'tiny',
+  BASE: 'base',
+  SMALL: 'small',
+  MEDIUM: 'medium',
+  LARGE: 'large',
+  TURBO: 'turbo'
+} as const
+
+export const WHISPER_MODEL_OUTPUT_EXTENSION = {
+  TXT: 'txt',
+  SRT: 'srt',
+  VTT: 'vtt',
+  LRC: 'lrc',
+  CSV: 'csv',
+  JSON: 'json'
+}

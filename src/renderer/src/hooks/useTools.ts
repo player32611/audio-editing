@@ -1,11 +1,18 @@
 import { App } from 'antd'
 import { useCallback } from 'react'
-import type { AudioFileExtension, AudioTag } from '../../../shared/type'
+import type {
+  AudioFileExtension,
+  AudioTag,
+  Language,
+  WhisperModel,
+  WhisperModelOutputExtension
+} from '../../../shared/type'
 
 interface useToolsData {
   getVoice: (params: getVoiceParams) => Promise<void>
   cutAudio: (params: CutAudioParams) => Promise<void>
   setAudioTags: (params: SetAudioTagsParams) => Promise<void>
+  speechRecognize: (params: speechRecognizeParams) => Promise<void>
 }
 
 interface getVoiceParams {
@@ -32,6 +39,14 @@ interface SetAudioTagsParams extends AudioTag {
   inputAudio: string
   outputAudio: string
   coverPath?: string
+}
+
+interface speechRecognizeParams {
+  inputAudio: string
+  outputFileWithoutExt: string
+  outputExtension: WhisperModelOutputExtension
+  language: Language
+  model: WhisperModel
 }
 
 export function useTools(): useToolsData {
@@ -62,6 +77,7 @@ export function useTools(): useToolsData {
       }
 
       const outputInfo = await window.api.parseFilePath(outputFile)
+      console.log(outputInfo)
       const isExistOutputPath = await window.api.existsSync(outputInfo.dir)
       if (!isExistOutputPath) {
         openMessage('输出文件夹不存在，请重试')
@@ -216,5 +232,39 @@ export function useTools(): useToolsData {
     [checkPath, onBegin, onSuccess, onError]
   )
 
-  return { getVoice, cutAudio, setAudioTags }
+  const speechRecognize = useCallback(
+    async (params: speechRecognizeParams) => {
+      const checked = await checkPath(
+        params.inputAudio,
+        `${params.outputFileWithoutExt}.${params.outputExtension}`
+      )
+      if (!checked) throw new Error()
+
+      const outputInfo = await window.api.parseFilePath(params.outputFileWithoutExt)
+      const type = await window.database.selectType('语音识别')
+      const workStatus = await window.database.selectStatus('处理中')
+      const id = await window.database.insertWorkHistory({
+        name: `${outputInfo.fullName}.${params.outputExtension}`,
+        time: new Date().toISOString(),
+        path: outputInfo.dir,
+        typeId: type,
+        statusId: workStatus
+      })
+
+      window.whisper
+        .transcribe(params)
+        .then(() => {
+          onSuccess(id, outputInfo.fullName)
+        })
+        .catch((msg) => {
+          console.log(msg)
+          onError(id, msg)
+        })
+
+      await onBegin(id)
+    },
+    [checkPath, onBegin, onSuccess, onError]
+  )
+
+  return { getVoice, cutAudio, setAudioTags, speechRecognize }
 }

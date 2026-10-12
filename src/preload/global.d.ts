@@ -11,7 +11,9 @@ import type {
   WorkHistoryTable,
   CutAudioOptions,
   FileInfo,
-  SetAduioTagOptions
+  SetAduioTagOptions,
+  WhisperOptions,
+  WhisperModel
 } from '../shared/type'
 import type { GetVoiceOptions } from '@sellmind/video-editor-core'
 import type { OpenDialogOptions } from 'electron'
@@ -40,6 +42,8 @@ declare global {
     path: {
       set: (type: Path, path: string) => Promise<string>
       get: (type: Path) => Promise<string>
+      getAppData: () => Promise<string>
+      getUserData: () => Promise<string>
     }
     ffmpeg: {
       getVoice: (options: GetVoiceOptions) => Promise<void>
@@ -48,6 +52,10 @@ declare global {
       getAudioStream: (path: string) => Promise<FfprobeStream>
       getAudioCover: (path: string) => Promise<Uint8Array<ArrayBuffer>>
       setAudioTags: (options: SetAduioTagOptions) => Promise<void>
+    }
+    whisper: {
+      transcribe: (options: WhisperOptions) => Promise<void>
+      checkModel: (model: WhisperModel) => Promise<boolean>
     }
     database: {
       selectAll: (database: Database) => Promise<StatusTable[]>

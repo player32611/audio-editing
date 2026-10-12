@@ -72,7 +72,6 @@ export function AudioEdit(): ReactNode {
     const inputName = await window.api.parseFilePath(inputPath)
     const data = await window.ffmpeg.getMediaData(inputPath)
     const outputPath = await window.path.get('output')
-    console.log(data)
     form.setFieldsValue({
       inputAudio: inputPath,
       outputName: inputName.name,
@@ -158,8 +157,6 @@ export function AudioEdit(): ReactNode {
       </Row>
 
       <Divider />
-
-      <Spin spinning={isLoading} fullscreen />
 
       <Form
         name="config"
@@ -276,6 +273,8 @@ export function AudioEdit(): ReactNode {
           placement: 'left'
         }}
       />
+
+      <Spin spinning={isLoading} fullscreen />
     </>
   )
 }
