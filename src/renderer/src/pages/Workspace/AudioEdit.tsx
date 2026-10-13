@@ -119,7 +119,6 @@ export function AudioEdit(): ReactNode {
 
   const onFinish: FormProps<FieldType>['onFinish'] = useCallback(
     async ({ inputAudio, outputPath, outputName, ...tags }) => {
-      console.log({ inputAudio, outputPath, outputName, ...tags })
       setIsLoading(true)
       const { ext } = await window.api.parseFilePath(inputAudio)
       setAudioTags({

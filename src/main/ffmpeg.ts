@@ -62,9 +62,9 @@ ipcMain.handle('ffmpeg:getVoice', (_, options: GetVoiceOptions, id?: number) => 
   })
 })
 
-ipcMain.handle('ffmpeg:cutAudio', (_, options: CutAudioOptions) => {
+ipcMain.handle('ffmpeg:cutAudio', (_, options: CutAudioOptions, id?: number) => {
   return new Promise<void>((reslove, reject) => {
-    Ffmpeg(options.inputAudio)
+    const work = Ffmpeg(options.inputAudio)
       .audioCodec(getCodec(options.audioExtension))
       .format(getFormat(options.audioExtension))
       .audioBitrate(options.audioBitrate)
@@ -77,7 +77,12 @@ ipcMain.handle('ffmpeg:cutAudio', (_, options: CutAudioOptions) => {
       .on('end', () => {
         reslove()
       })
-      .save(options.outputAudio)
+    if (id) {
+      work.on('progress', (progress) => {
+        setWorkList(id, { progress: progress.percent })
+      })
+    }
+    work.save(options.outputAudio)
   })
 })
 
@@ -132,47 +137,96 @@ ipcMain.handle('ffmpeg:getAudioCover', (_, path: string) => {
   })
 })
 
-ipcMain.handle('ffmpeg:setAudioTags', (_, options: SetAduioTagOptions): Promise<void> => {
-  const {
-    inputAudio,
-    outputAudio,
-    coverPath,
-    title,
-    artist,
-    album_artist,
-    album,
-    composer,
-    genre,
-    date,
-    track,
-    disc
-  } = options
+ipcMain.handle(
+  'ffmpeg:setAudioTags',
+  (_, options: SetAduioTagOptions, id?: number): Promise<void> => {
+    const {
+      inputAudio,
+      outputAudio,
+      coverPath,
+      title,
+      artist,
+      album_artist,
+      album,
+      composer,
+      genre,
+      date,
+      track,
+      disc
+    } = options
 
-  const tags: Record<string, string | number | undefined> = {
-    title,
-    artist,
-    album_artist,
-    album,
-    composer,
-    genre,
-    date,
-    track,
-    disc
-  }
-  const ext = parseFilePath(inputAudio).ext
-  const outputOptions: string[] = []
-
-  for (const [key, value] of Object.entries(tags)) {
-    if (value !== undefined) {
-      outputOptions.push('-metadata', `${key}=${value}`)
+    const tags: Record<string, string | number | undefined> = {
+      title,
+      artist,
+      album_artist,
+      album,
+      composer,
+      genre,
+      date,
+      track,
+      disc
     }
-  }
+    const ext = parseFilePath(inputAudio).ext
+    const outputOptions: string[] = []
 
-  outputOptions.push('-c:a', 'copy')
-  if (coverPath) {
-    switch (ext) {
-      case AUDIO_FILE_EXTENSION.MP3:
-        if (coverPath)
+    for (const [key, value] of Object.entries(tags)) {
+      if (value !== undefined) {
+        outputOptions.push('-metadata', `${key}=${value}`)
+      }
+    }
+
+    outputOptions.push('-c:a', 'copy')
+    if (coverPath) {
+      switch (ext) {
+        case AUDIO_FILE_EXTENSION.MP3:
+          if (coverPath)
+            outputOptions.push(
+              '-map',
+              '0:a:0',
+              '-map',
+              '1:v:0',
+              '-c:v',
+              'mjpeg',
+              '-id3v2_version',
+              '3',
+              '-disposition:v:0',
+              'attached_pic',
+              '-metadata:s:v',
+              'title=Album cover',
+              '-metadata:s:v',
+              'comment=Cover (Front)'
+            )
+          break
+        case AUDIO_FILE_EXTENSION.FLAC:
+          outputOptions.push(
+            '-map',
+            '0:a:0', // 原音频流
+            '-map',
+            '1:v:0', // 封面图片
+            '-c:v',
+            'mjpeg', // 封面转码为 JPEG（Windows 资源管理器只稳定识别 JPEG/PNG）
+            '-disposition:v:0',
+            'attached_pic', // 标记为封面
+            '-metadata:s:v',
+            'title=Album cover',
+            '-metadata:s:v',
+            'comment=Cover (front)',
+            '-f',
+            'flac' // 输出 FLAC
+          )
+          break
+        case AUDIO_FILE_EXTENSION.WAV:
+          // WAV(RIFF) 无法内嵌封面：Windows 资源管理器读取的是非标准 id3 块，FFmpeg 写不进去。
+          // 若把封面映射为 attached_pic 视频流，WAV muxer 无法写入视频流，
+          // 会报 "Error initializing output stream 0:1" / "Could not write header"。
+          // 因此只复制音频流与标签信息，不嵌入封面。
+          outputOptions.push('-map', '0:a:0')
+          break
+        case AUDIO_FILE_EXTENSION.AAC:
+          // AAC(.aac 为 ADTS 裸流) 无法内嵌封面，只能复制音频流与标签信息。
+          outputOptions.push('-map', '0:a:0')
+          break
+        case AUDIO_FILE_EXTENSION.M4A:
           outputOptions.push(
             '-map',
             '0:a:0',
@@ -180,87 +234,46 @@ ipcMain.handle('ffmpeg:setAudioTags', (_, options: SetAduioTagOptions): Promise<
             '1:v:0',
             '-c:v',
             'mjpeg',
-            '-id3v2_version',
-            '3',
             '-disposition:v:0',
             'attached_pic',
             '-metadata:s:v',
             'title=Album cover',
             '-metadata:s:v',
-            'comment=Cover (Front)'
+            'comment=Cover (front)'
           )
-        break
-      case AUDIO_FILE_EXTENSION.FLAC:
-        outputOptions.push(
-          '-map',
-          '0:a:0', // 原音频流
-          '-map',
-          '1:v:0', // 封面图片
-          '-c:v',
-          'mjpeg', // 封面转码为 JPEG（Windows 资源管理器只稳定识别 JPEG/PNG）
-          '-disposition:v:0',
-          'attached_pic', // 标记为封面
-          '-metadata:s:v',
-          'title=Album cover',
-          '-metadata:s:v',
-          'comment=Cover (front)',
-          '-f',
-          'flac' // 输出 FLAC
-        )
-        break
-      case AUDIO_FILE_EXTENSION.WAV:
-        // WAV(RIFF) 无法内嵌封面：Windows 资源管理器读取的是非标准 id3 块，FFmpeg 写不进去。
-        // 若把封面映射为 attached_pic 视频流，WAV muxer 无法写入视频流，
-        // 会报 "Error initializing output stream 0:1" / "Could not write header"。
-        // 因此只复制音频流与标签信息，不嵌入封面。
-        outputOptions.push('-map', '0:a:0')
-        break
-      case AUDIO_FILE_EXTENSION.AAC:
-        // AAC(.aac 为 ADTS 裸流) 无法内嵌封面，只能复制音频流与标签信息。
-        outputOptions.push('-map', '0:a:0')
-        break
-      case AUDIO_FILE_EXTENSION.M4A:
-        outputOptions.push(
-          '-map',
-          '0:a:0',
-          '-map',
-          '1:v:0',
-          '-c:v',
-          'mjpeg',
-          '-disposition:v:0',
-          'attached_pic',
-          '-metadata:s:v',
-          'title=Album cover',
-          '-metadata:s:v',
-          'comment=Cover (front)'
-        )
-        break
-      case AUDIO_FILE_EXTENSION.OGG:
-        // Ogg muxer 不接受 mjpeg 视频流（不似 FLAC 会把封面缓存进 METADATA_BLOCK_PICTURE），
-        // 强行映射封面会报 "Error initializing output stream 0:1"。故只复制音频流与标签。
-        outputOptions.push('-map', '0:a:0')
-        break
+          break
+        case AUDIO_FILE_EXTENSION.OGG:
+          // Ogg muxer 不接受 mjpeg 视频流（不似 FLAC 会把封面缓存进 METADATA_BLOCK_PICTURE），
+          // 强行映射封面会报 "Error initializing output stream 0:1"。故只复制音频流与标签。
+          outputOptions.push('-map', '0:a:0')
+          break
+      }
     }
-  }
 
-  return new Promise<void>((resolve, reject) => {
-    const work = Ffmpeg(inputAudio)
-    // 仅 MP3 / FLAC / M4A 支持内嵌封面；WAV / AAC / OGG 不支持，添加封面输入只会产生未使用的第二输入
-    if (
-      coverPath &&
-      ext !== AUDIO_FILE_EXTENSION.WAV &&
-      ext !== AUDIO_FILE_EXTENSION.AAC &&
-      ext !== AUDIO_FILE_EXTENSION.OGG
-    )
-      work.input(coverPath)
-    work
-      .outputOptions(...outputOptions)
-      .on('error', (error) => {
-        reject(error)
-      })
-      .on('end', () => {
-        resolve()
-      })
-      .save(outputAudio)
-  })
-})
+    return new Promise<void>((resolve, reject) => {
+      const work = Ffmpeg(inputAudio)
+      // 仅 MP3 / FLAC / M4A 支持内嵌封面；WAV / AAC / OGG 不支持，添加封面输入只会产生未使用的第二输入
+      if (
+        coverPath &&
+        ext !== AUDIO_FILE_EXTENSION.WAV &&
+        ext !== AUDIO_FILE_EXTENSION.AAC &&
+        ext !== AUDIO_FILE_EXTENSION.OGG
+      )
+        work.input(coverPath)
+      if (id) {
+        work.on('progress', (progress) => {
+          setWorkList(id, { progress: progress.percent })
+        })
+      }
+      work
+        .outputOptions(...outputOptions)
+        .on('error', (error) => {
+          reject(error)
+        })
+        .on('end', () => {
+          resolve()
+        })
+        .save(outputAudio)
+    })
+  }
+)

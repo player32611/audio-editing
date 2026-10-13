@@ -238,8 +238,9 @@ export function useTools(): useToolsData {
         statusId: workStatus
       })
 
+      await onBegin(id)
       window.ffmpeg
-        .cutAudio(params)
+        .cutAudio(params, id)
         .then(() => {
           onSuccess(id, outputInfo.fullName)
         })
@@ -247,8 +248,6 @@ export function useTools(): useToolsData {
           console.log(msg)
           onError(id, msg)
         })
-
-      await onBegin(id)
     },
     [checkPath, onBegin, onSuccess, onError]
   )
@@ -269,8 +268,9 @@ export function useTools(): useToolsData {
         statusId: workStatus
       })
 
+      await onBegin(id)
       window.ffmpeg
-        .setAudioTags(params)
+        .setAudioTags(params, id)
         .then(() => {
           onSuccess(id, outputInfo.fullName)
         })
@@ -278,8 +278,6 @@ export function useTools(): useToolsData {
           console.log(err)
           onError(id, err)
         })
-
-      await onBegin(id)
     },
     [checkPath, onBegin, onSuccess, onError]
   )
