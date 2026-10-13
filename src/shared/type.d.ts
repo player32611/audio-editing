@@ -48,6 +48,10 @@ export interface AudioTag {
   track?: string
   disc?: string
 }
+export interface WorkListItem {
+  status?: WorkStatus
+  progress?: number
+}
 
 export interface StatusTable {
   id: number

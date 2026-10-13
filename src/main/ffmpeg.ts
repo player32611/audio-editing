@@ -3,11 +3,12 @@ import { delimiter, dirname } from 'path'
 import ffmpegInstaller from '@ffmpeg-installer/ffmpeg'
 import ffprobeInstaller from '@ffprobe-installer/ffprobe'
 import Ffmpeg from 'fluent-ffmpeg'
-import { CutAudioOptions, GetVoiceOptions, SetAduioTagOptions } from '../shared/type'
-import type { FfprobeData, FfprobeStream } from 'fluent-ffmpeg'
 import { parseFilePath } from './api'
 import { AUDIO_FILE_EXTENSION } from '../shared/constants'
 import { getCodec, getFormat } from '../shared/utils'
+import { setWorkList } from '.'
+import type { CutAudioOptions, GetVoiceOptions, SetAduioTagOptions } from '../shared/type'
+import type { FfprobeData, FfprobeStream } from 'fluent-ffmpeg'
 
 /**
  * 在打包的构建中，二进制文件位于 app.asar 内，但它们只能从解包的副本中启动
@@ -36,9 +37,9 @@ export function setupFfmpeg(): void {
   process.env.PATH = [...binDirs, process.env.PATH ?? ''].join(delimiter)
 }
 
-ipcMain.handle('ffmpeg:getVoice', (_, options: GetVoiceOptions) => {
+ipcMain.handle('ffmpeg:getVoice', (_, options: GetVoiceOptions, id?: number) => {
   return new Promise<void>((resolve, reject) => {
-    Ffmpeg(options.inputVideo)
+    const work = Ffmpeg(options.inputVideo)
       .noVideo()
       .audioCodec(getCodec(options.audioExtension))
       .format(getFormat(options.audioExtension))
@@ -52,7 +53,12 @@ ipcMain.handle('ffmpeg:getVoice', (_, options: GetVoiceOptions) => {
       .on('end', () => {
         resolve()
       })
-      .save(options.outputAudio)
+    if (id) {
+      work.on('progress', (progress) => {
+        setWorkList(id, { progress: progress.percent })
+      })
+    }
+    work.save(options.outputAudio)
   })
 })
 

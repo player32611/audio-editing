@@ -151,7 +151,7 @@ export function useTools(): useToolsData {
 
   const onBegin = useCallback(
     async (id: number) => {
-      await window.work.set(id, '处理中')
+      await window.work.set(id, { status: '处理中', progress: 0 })
       message.open({
         key,
         type: 'success',
@@ -208,8 +208,9 @@ export function useTools(): useToolsData {
         statusId: workStatus
       })
 
+      await onBegin(id)
       window.ffmpeg
-        .getVoice(params)
+        .getVoice(params, id)
         .then(() => {
           onSuccess(id, outputInfo.fullName)
         })
@@ -217,7 +218,6 @@ export function useTools(): useToolsData {
           console.log(msg)
           onError(id, msg)
         })
-      await onBegin(id)
     },
     [checkPath, onBegin, onSuccess, onError]
   )

@@ -14,7 +14,8 @@ import type {
   SetAduioTagOptions,
   WhisperDownloadProgress,
   WhisperOptions,
-  WhisperModel
+  WhisperModel,
+  WorkListItem
 } from '../shared/type'
 import type { GetVoiceOptions } from '@sellmind/video-editor-core'
 import type { OpenDialogOptions } from 'electron'
@@ -47,12 +48,12 @@ declare global {
       getUserData: () => Promise<string>
     }
     ffmpeg: {
-      getVoice: (options: GetVoiceOptions) => Promise<void>
-      cutAudio: (options: CutAudioOptions) => Promise<void>
+      getVoice: (options: GetVoiceOptions, id?: number) => Promise<void>
+      cutAudio: (options: CutAudioOptions, id?: number) => Promise<void>
       getMediaData: (path: string) => Promise<FfprobeData>
       getAudioStream: (path: string) => Promise<FfprobeStream>
       getAudioCover: (path: string) => Promise<Uint8Array<ArrayBuffer>>
-      setAudioTags: (options: SetAduioTagOptions) => Promise<void>
+      setAudioTags: (options: SetAduioTagOptions, id?: number) => Promise<void>
     }
     whisper: {
       transcribe: (options: WhisperOptions) => Promise<void>
@@ -72,7 +73,7 @@ declare global {
       deleteBatchByIds: (database: Database, ids: number[]) => Promise<void>
     }
     work: {
-      set: (id: number, status: WorkStatus) => Promise<void>
+      set: (id: number, data: WorkListItem) => Promise<void>
       get: (id: number) => Promise<WorkStatus>
       getAll: () => Promise<{ id: number; status: WorkStatus; progress: number }[]>
       delete: (id: number) => Promise<void>

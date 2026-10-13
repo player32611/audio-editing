@@ -12,6 +12,7 @@ import type {
   WhisperOptions,
   WorkHistoryInsert,
   WorkHistoryTable,
+  WorkListItem,
   WorkStatus,
   WorkType
 } from '../shared/type'
@@ -48,12 +49,15 @@ const path = {
 }
 
 const ffmpeg = {
-  getVoice: (options: GetVoiceOptions) => ipcRenderer.invoke('ffmpeg:getVoice', options),
-  cutAudio: (options: CutAudioOptions) => ipcRenderer.invoke('ffmpeg:cutAudio', options),
+  getVoice: (options: GetVoiceOptions, id?: number) =>
+    ipcRenderer.invoke('ffmpeg:getVoice', options, id),
+  cutAudio: (options: CutAudioOptions, id?: number) =>
+    ipcRenderer.invoke('ffmpeg:cutAudio', options, id),
   getMediaData: (path: string) => ipcRenderer.invoke('ffmpeg:getMediaData', path),
   getAudioStream: (path: string) => ipcRenderer.invoke('ffmpeg:getAudioStream', path),
   getAudioCover: (path: string) => ipcRenderer.invoke('ffmpeg:getAudioCover', path),
-  setAudioTags: (options: SetAduioTagOptions) => ipcRenderer.invoke('ffmpeg:setAudioTags', options)
+  setAudioTags: (options: SetAduioTagOptions, id?: number) =>
+    ipcRenderer.invoke('ffmpeg:setAudioTags', options, id)
 }
 
 const whisper = {
@@ -87,7 +91,7 @@ const database = {
 }
 
 const work = {
-  set: (id: number, status: WorkStatus) => ipcRenderer.invoke('work:set', id, status),
+  set: (id: number, data: WorkListItem) => ipcRenderer.invoke('work:set', id, data),
   get: (id: number) => ipcRenderer.invoke('work:get', id),
   getAll: () => ipcRenderer.invoke('work:getAll'),
   delete: (id: number) => ipcRenderer.invoke('work:delete', id),

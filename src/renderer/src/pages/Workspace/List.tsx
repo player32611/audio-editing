@@ -24,11 +24,15 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { WorkHistoryUnion } from '../../../../shared/type'
 import { getStatusColor } from '@renderer/utils'
 
+interface ListData extends WorkHistoryUnion {
+  progress?: number
+}
+
 const { Text } = Typography
 
 export default function List(): ReactNode {
+  const [data, setData] = useState<ListData[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(true)
-  const [data, setData] = useState<WorkHistoryUnion[]>([])
   const [selectIds, setSelectIds] = useState<number[]>([])
   const [pageSize, setPageSize] = useState<number>(Math.floor((window.innerHeight - 260) / 65))
   const { message, modal } = App.useApp()
@@ -37,8 +41,15 @@ export default function List(): ReactNode {
   const key = 'delete'
 
   const onRefresh = useCallback(async () => {
-    return window.database.selectWorkHistoryUnion().then((res) => {
-      setData(res.map((item) => ({ ...item, key: item.id })))
+    return window.database.selectWorkHistoryUnion().then(async (res) => {
+      const workList = await window.work.getAll()
+      setData(
+        res.map((item) => ({
+          ...item,
+          key: item.id,
+          progress: workList.find((val) => val.id === item.id)?.progress
+        }))
+      )
       setIsLoading(false)
     })
   }, [])
@@ -108,7 +119,7 @@ export default function List(): ReactNode {
     }
   }, [onRefresh, onResize])
 
-  const columns: TableProps<WorkHistoryUnion>['columns'] = [
+  const columns: TableProps<ListData>['columns'] = [
     {
       title: '名称',
       dataIndex: 'name',
@@ -125,7 +136,12 @@ export default function List(): ReactNode {
       title: '状态',
       dataIndex: 'statusName',
       key: 'statusName',
-      render: (statusName) => <Tag color={getStatusColor(statusName)}>{statusName}</Tag>
+      render: (statusName, record) => (
+        <Tag color={getStatusColor(statusName)}>
+          {statusName}
+          {record.progress ? `${Math.floor(record.progress)}%` : ''}
+        </Tag>
+      )
     },
     {
       title: '时间',
@@ -178,7 +194,7 @@ export default function List(): ReactNode {
           </Button>
         </Flex>
 
-        <Table<WorkHistoryUnion>
+        <Table<ListData>
           columns={columns}
           loading={isLoading}
           dataSource={data}

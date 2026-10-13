@@ -4,7 +4,7 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 
 import { STORE_KEY } from '../shared/constants'
-import type { Theme, WorkStatus } from '../shared/type'
+import type { Theme, WorkListItem, WorkStatus } from '../shared/type'
 import { setupFfmpeg } from './ffmpeg'
 import { initDatabase, selectStatus, updateWorkHistory } from './database'
 import { initStore } from './store'
@@ -98,9 +98,8 @@ nativeTheme.on('updated', () => {
   mainWindow?.webContents.send('theme:changed', nativeTheme.shouldUseDarkColors)
 })
 
-ipcMain.handle('work:set', (_, id: number, status: WorkStatus): void => {
-  workList.set(id, { status, progress: 0 })
-  mainWindow?.webContents.send('work:changed')
+ipcMain.handle('work:set', (_, id: number, { status, progress }: WorkListItem): void => {
+  setWorkList(id, { status, progress })
 })
 
 ipcMain.handle('work:get', (_, id: number): { status: WorkStatus; progress: number } | null => {
@@ -109,7 +108,7 @@ ipcMain.handle('work:get', (_, id: number): { status: WorkStatus; progress: numb
   return null
 })
 
-ipcMain.handle('work:getAll', (): { id: number; status: WorkStatus }[] => {
+ipcMain.handle('work:getAll', (): { id: number; status: WorkStatus; progress: number }[] => {
   return Array.from(workList, ([key, value]) => ({
     id: key,
     status: value.status,
@@ -163,6 +162,22 @@ app.on('before-quit', async () => {
     updateWorkHistory(id, { statusId })
   })
 })
+
+export const setWorkList = (id: number, { status, progress }: WorkListItem): void => {
+  const data = workList.get(id)
+  workList.set(id, {
+    status: status || data?.status || '待处理',
+    progress: progress || data?.progress || 0
+  })
+  mainWindow?.webContents.send('work:changed', workList)
+}
+
+export const sendMessage = (channel: string, ...args: unknown[]): void => {
+  if (!mainWindow || mainWindow.isDestroyed()) return
+  if (mainWindow.webContents.isDestroyed()) return
+
+  mainWindow.webContents.send(channel, ...args)
+}
 
 // 在这个文件里，你可以加入你应用其余的特定主进程代码
 // 你也可以把它们放在不同的文件里，然后在这里引入。
