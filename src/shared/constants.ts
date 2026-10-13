@@ -29,6 +29,7 @@ export const IMAGE_FILE_EXTENSION = {
 
 export const LANGUAGE = {
   ZH: 'zh',
+  YUE: 'yue',
   EN: 'en',
   JA: 'ja',
   FR: 'fr',

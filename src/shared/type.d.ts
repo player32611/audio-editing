@@ -110,5 +110,13 @@ export interface WhisperOptions {
   outputExtension: WhisperModelOutputExtension
   language: Language
   model: WhisperModel
-  translate?: boolean
+  prompt: string
+  translate: boolean
+}
+
+export interface WhisperDownloadProgress {
+  model: WhisperModel
+  loaded: number
+  total: number
+  percent: number
 }

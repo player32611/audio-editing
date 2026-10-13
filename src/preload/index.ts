@@ -7,6 +7,8 @@ import type {
   Path,
   SetAduioTagOptions,
   Theme,
+  WhisperDownloadProgress,
+  WhisperModel,
   WhisperOptions,
   WorkHistoryInsert,
   WorkHistoryTable,
@@ -55,7 +57,17 @@ const ffmpeg = {
 }
 
 const whisper = {
-  transcribe: (options: WhisperOptions) => ipcRenderer.invoke('whisper:transcribe', options)
+  transcribe: (options: WhisperOptions) => ipcRenderer.invoke('whisper:transcribe', options),
+  checkModel: (model: WhisperModel) => ipcRenderer.invoke('whisper:checkModel', model),
+  downloadModel: (model: WhisperModel) => ipcRenderer.invoke('whisper:downloadModel', model),
+  onDownloadProgress: (callback: (progress: WhisperDownloadProgress) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, progress: WhisperDownloadProgress): void =>
+      callback(progress)
+
+    ipcRenderer.on('whisper:downloadProgress', listener)
+
+    return () => ipcRenderer.removeListener('whisper:downloadProgress', listener)
+  }
 }
 
 const database = {
@@ -75,7 +87,7 @@ const database = {
 }
 
 const work = {
-  set: (id: number, work: WorkStatus) => ipcRenderer.invoke('work:set', id, work),
+  set: (id: number, status: WorkStatus) => ipcRenderer.invoke('work:set', id, status),
   get: (id: number) => ipcRenderer.invoke('work:get', id),
   getAll: () => ipcRenderer.invoke('work:getAll'),
   delete: (id: number) => ipcRenderer.invoke('work:delete', id),

@@ -47,10 +47,12 @@ interface speechRecognizeParams {
   outputExtension: WhisperModelOutputExtension
   language: Language
   model: WhisperModel
+  prompt: string
+  translate: boolean
 }
 
 export function useTools(): useToolsData {
-  const { message, notification } = App.useApp()
+  const { message, notification, modal } = App.useApp()
   const key = 'message'
 
   const checkPath = useCallback(
@@ -77,7 +79,6 @@ export function useTools(): useToolsData {
       }
 
       const outputInfo = await window.api.parseFilePath(outputFile)
-      console.log(outputInfo)
       const isExistOutputPath = await window.api.existsSync(outputInfo.dir)
       if (!isExistOutputPath) {
         openMessage('输出文件夹不存在，请重试')
@@ -95,6 +96,57 @@ export function useTools(): useToolsData {
       return true
     },
     [message]
+  )
+
+  const checkModel = useCallback(
+    async (model: WhisperModel) => {
+      const existModel = await window.whisper.checkModel(model)
+      if (existModel) return true
+      const ifDownload = await modal.confirm({
+        title: '模型未下载',
+        content: '当前选择模型暂未下载，是否先下载模型？',
+        okText: '下载'
+      })
+      if (!ifDownload) return false
+
+      message.open({
+        key,
+        type: 'loading',
+        content: '正在下载模型 0%',
+        duration: 0
+      })
+      const unsubscribe = window.whisper.onDownloadProgress((progress) => {
+        console.log(progress)
+        message.open({
+          key,
+          type: 'loading',
+          content: `正在下载模型 ${progress.percent}%`,
+          duration: 0
+        })
+      })
+      try {
+        await window.whisper.downloadModel(model)
+        message.open({
+          key,
+          type: 'success',
+          content: '模型下载成功',
+          duration: 3
+        })
+        return true
+      } catch (err) {
+        console.log(err)
+        message.open({
+          key,
+          type: 'error',
+          content: `模型下载失败: ${err}`,
+          duration: 3
+        })
+        return false
+      } finally {
+        unsubscribe()
+      }
+    },
+    [message, modal]
   )
 
   const onBegin = useCallback(
@@ -234,11 +286,14 @@ export function useTools(): useToolsData {
 
   const speechRecognize = useCallback(
     async (params: speechRecognizeParams) => {
-      const checked = await checkPath(
+      let checked = await checkPath(
         params.inputAudio,
         `${params.outputFileWithoutExt}.${params.outputExtension}`
       )
-      if (!checked) throw new Error()
+      if (!checked) throw new Error('路径有误')
+
+      checked = await checkModel(params.model)
+      if (!checked) throw new Error('模型未下载')
 
       const outputInfo = await window.api.parseFilePath(params.outputFileWithoutExt)
       const type = await window.database.selectType('语音识别')
@@ -250,7 +305,7 @@ export function useTools(): useToolsData {
         typeId: type,
         statusId: workStatus
       })
-
+      console.log(params)
       window.whisper
         .transcribe(params)
         .then(() => {
@@ -263,7 +318,7 @@ export function useTools(): useToolsData {
 
       await onBegin(id)
     },
-    [checkPath, onBegin, onSuccess, onError]
+    [checkPath, checkModel, onBegin, onSuccess, onError]
   )
 
   return { getVoice, cutAudio, setAudioTags, speechRecognize }

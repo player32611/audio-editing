@@ -47,16 +47,18 @@ export const formatSeconds = (
 
 export const formatLanguage = (language: Language): string => {
   switch (language) {
-    case 'auto':
-      return '自动'
-    case 'en':
-      return '英文'
     case 'zh':
       return '中文'
+    case 'yue':
+      return '粤语'
+    case 'en':
+      return '英语'
     case 'ja':
       return '日语'
     case 'fr':
       return '法语'
+    case 'auto':
+      return '自动识别'
     default:
       return language
   }

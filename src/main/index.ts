@@ -13,7 +13,7 @@ setupFfmpeg()
 
 let mainWindow: BrowserWindow | null = null
 const store = initStore()
-const workList = new Map<number, WorkStatus>()
+const workList = new Map<number, { status: WorkStatus; progress: number }>()
 
 function createWindow(): void {
   if (mainWindow && !mainWindow.isDestroyed()) {
@@ -98,19 +98,23 @@ nativeTheme.on('updated', () => {
   mainWindow?.webContents.send('theme:changed', nativeTheme.shouldUseDarkColors)
 })
 
-ipcMain.handle('work:set', (_, id: number, work: WorkStatus): void => {
-  workList.set(id, work)
+ipcMain.handle('work:set', (_, id: number, status: WorkStatus): void => {
+  workList.set(id, { status, progress: 0 })
   mainWindow?.webContents.send('work:changed')
 })
 
-ipcMain.handle('work:get', (_, id: number): WorkStatus | null => {
+ipcMain.handle('work:get', (_, id: number): { status: WorkStatus; progress: number } | null => {
   const res = workList.get(id)
   if (res) return res
   return null
 })
 
 ipcMain.handle('work:getAll', (): { id: number; status: WorkStatus }[] => {
-  return Array.from(workList, ([key, value]) => ({ id: key, status: value }))
+  return Array.from(workList, ([key, value]) => ({
+    id: key,
+    status: value.status,
+    progress: value.progress
+  }))
 })
 
 ipcMain.handle('work:delete', (_, id: number) => {

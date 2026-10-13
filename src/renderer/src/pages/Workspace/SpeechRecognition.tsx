@@ -9,9 +9,11 @@ import {
   Flex,
   Spin,
   Radio,
-  FormProps
+  FloatButton,
+  type FormProps,
+  Switch
 } from 'antd'
-import { LeftOutlined, FolderOpenOutlined } from '@ant-design/icons'
+import { LeftOutlined, FolderOpenOutlined, ExclamationCircleOutlined } from '@ant-design/icons'
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router'
 import {
@@ -31,6 +33,8 @@ interface FieldType {
   outputExtension: WhisperModelOutputExtension
   language: Language
   model: WhisperModel
+  prompt: string
+  translate: boolean
 }
 
 const { Text } = Typography
@@ -84,8 +88,7 @@ export default function SpeechRecognition(): ReactNode {
   }, [isSelecting, form])
 
   const onFinish: FormProps<FieldType>['onFinish'] = useCallback(
-    async (values: FieldType) => {
-      const { outputPath, outputName, ...params } = values
+    async ({ outputPath, outputName, ...params }: FieldType) => {
       setIsLoading(true)
       speechRecognize({
         outputFileWithoutExt: `${outputPath}\\${outputName}`,
@@ -199,6 +202,18 @@ export default function SpeechRecognition(): ReactNode {
           </Radio.Group>
         </Form.Item>
 
+        <Form.Item<FieldType>
+          name="prompt"
+          label="提示词"
+          tooltip="提供初始文本提示，更容易识别准确"
+        >
+          <Input />
+        </Form.Item>
+
+        <Form.Item<FieldType> name="translate" label="翻译为英文" initialValue={false}>
+          <Switch />
+        </Form.Item>
+
         <Form.Item wrapperCol={{ span: 24 }}>
           <Flex justify="center" align="center" gap={10}>
             <Button htmlType="button" onClick={onReset}>
@@ -210,6 +225,14 @@ export default function SpeechRecognition(): ReactNode {
           </Flex>
         </Form.Item>
       </Form>
+
+      <FloatButton
+        icon={<ExclamationCircleOutlined />}
+        tooltip={{
+          title: '识别结果仅供参考，请以实际为准',
+          placement: 'left'
+        }}
+      />
 
       <Spin spinning={isLoading} fullscreen />
     </>

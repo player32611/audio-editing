@@ -12,6 +12,7 @@ import type {
   CutAudioOptions,
   FileInfo,
   SetAduioTagOptions,
+  WhisperDownloadProgress,
   WhisperOptions,
   WhisperModel
 } from '../shared/type'
@@ -56,6 +57,8 @@ declare global {
     whisper: {
       transcribe: (options: WhisperOptions) => Promise<void>
       checkModel: (model: WhisperModel) => Promise<boolean>
+      downloadModel: (model: WhisperModel) => Promise<string>
+      onDownloadProgress: (callback: (progress: WhisperDownloadProgress) => void) => () => void
     }
     database: {
       selectAll: (database: Database) => Promise<StatusTable[]>
@@ -69,9 +72,9 @@ declare global {
       deleteBatchByIds: (database: Database, ids: number[]) => Promise<void>
     }
     work: {
-      set: (id: number, work: WorkStatus) => Promise<void>
+      set: (id: number, status: WorkStatus) => Promise<void>
       get: (id: number) => Promise<WorkStatus>
-      getAll: () => Promise<{ id: number; status: WorkStatus }>
+      getAll: () => Promise<{ id: number; status: WorkStatus; progress: number }[]>
       delete: (id: number) => Promise<void>
       onChanged: (callback: (worklist: Promise<void>[]) => void) => () => void
     }
