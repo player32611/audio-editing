@@ -61,7 +61,8 @@ const ffmpeg = {
 }
 
 const whisper = {
-  transcribe: (options: WhisperOptions) => ipcRenderer.invoke('whisper:transcribe', options),
+  transcribe: (options: WhisperOptions, id?: number) =>
+    ipcRenderer.invoke('whisper:transcribe', options, id),
   checkModel: (model: WhisperModel) => ipcRenderer.invoke('whisper:checkModel', model),
   downloadModel: (model: WhisperModel) => ipcRenderer.invoke('whisper:downloadModel', model),
   onDownloadProgress: (callback: (progress: WhisperDownloadProgress) => void) => {

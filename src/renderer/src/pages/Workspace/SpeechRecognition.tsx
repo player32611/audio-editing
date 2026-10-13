@@ -182,7 +182,12 @@ export default function SpeechRecognition(): ReactNode {
           </Radio.Group>
         </Form.Item>
 
-        <Form.Item<FieldType> name="model" label="识别模型" initialValue="medium">
+        <Form.Item<FieldType>
+          name="model"
+          label="识别模型"
+          initialValue="medium"
+          tooltip="越大的模型识别精度更高，但识别时间更长，内存更大"
+        >
           <Radio.Group>
             {Object.values(WHISPER_MODEL_TYPE).map((val) => (
               <Radio.Button value={val} key={val}>

@@ -108,8 +108,7 @@ export default function List(): ReactNode {
       }, 0)
     })
 
-    const unsubscribe = window.work.onChanged((worklist) => {
-      console.log(worklist)
+    const unsubscribe = window.work.onChanged(() => {
       onRefresh()
     })
     window.addEventListener('resize', onResize)

@@ -112,15 +112,14 @@ export function useTools(): useToolsData {
       message.open({
         key,
         type: 'loading',
-        content: '正在下载模型 0%',
+        content: '正在下载模型 0.00%',
         duration: 0
       })
       const unsubscribe = window.whisper.onDownloadProgress((progress) => {
-        console.log(progress)
         message.open({
           key,
           type: 'loading',
-          content: `正在下载模型 ${progress.percent}%`,
+          content: `正在下载模型 ${(progress.percent * 100).toFixed(2)}%`,
           duration: 0
         })
       })
@@ -303,9 +302,10 @@ export function useTools(): useToolsData {
         typeId: type,
         statusId: workStatus
       })
-      console.log(params)
+
+      await onBegin(id)
       window.whisper
-        .transcribe(params)
+        .transcribe(params, id)
         .then(() => {
           onSuccess(id, outputInfo.fullName)
         })
@@ -313,8 +313,6 @@ export function useTools(): useToolsData {
           console.log(msg)
           onError(id, msg)
         })
-
-      await onBegin(id)
     },
     [checkPath, checkModel, onBegin, onSuccess, onError]
   )

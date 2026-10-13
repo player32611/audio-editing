@@ -56,7 +56,7 @@ declare global {
       setAudioTags: (options: SetAduioTagOptions, id?: number) => Promise<void>
     }
     whisper: {
-      transcribe: (options: WhisperOptions) => Promise<void>
+      transcribe: (options: WhisperOptions, id?: number) => Promise<void>
       checkModel: (model: WhisperModel) => Promise<boolean>
       downloadModel: (model: WhisperModel) => Promise<string>
       onDownloadProgress: (callback: (progress: WhisperDownloadProgress) => void) => () => void

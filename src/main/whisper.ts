@@ -12,9 +12,18 @@ import type {
   WhisperModelOutputExtension,
   WhisperOptions
 } from '../shared/type'
+import { setWorkList } from './work'
 
-/** 模型下载源（whisper.cpp 官方 Hugging Face 仓库） */
-const MODEL_BASE_URL = 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main'
+/**
+ * 模型下载源（按顺序逐个尝试）。
+ * 1. hf-mirror：国内社区镜像，直连快（解决无法访问 huggingface.co 的问题）；
+ * 2. 官方源：能访问 huggingface.co 时使用（有代理 / 可直连）。
+ * 可继续追加 ModelScope 镜像或用户自定义源。
+ */
+const MODEL_SOURCES = [
+  'https://hf-mirror.com/ggerganov/whisper.cpp/resolve/main',
+  'https://huggingface.co/ggerganov/whisper.cpp/resolve/main'
+]
 
 /**
  * 集成 whisper.cpp（与内置 FFmpeg 同一模式）：
@@ -75,30 +84,31 @@ export function getWhisperModelPath(model: WhisperModel): string {
   return join(getWhisperModelDir(), MODEL_FILE[model])
 }
 
-/** 指定模型的下载地址 */
-export function getWhisperModelUrl(model: WhisperModel): string {
-  return `${MODEL_BASE_URL}/${MODEL_FILE[model]}?download=true`
+/** 指定模型在某个源下的完整下载地址 */
+function getSourceUrl(baseUrl: string, model: WhisperModel): string {
+  return `${baseUrl}/${MODEL_FILE[model]}`
 }
 
 /**
- * 下载模型到本地缓存目录（已存在则直接返回路径）。
- * 先写临时文件再原子重命名，避免中断留下半成品；通过 onProgress 上报进度。
+ * 从单个源下载模型到临时文件（调用方负责重命名与清理）。
+ * 失败（网络错误 / 非 2xx / HTML 错误页 / 下载不完整）时抛错，供上层切换下一个源。
  */
-export async function downloadModel(
+async function downloadFrom(
   model: WhisperModel,
+  baseUrl: string,
+  tmpPath: string,
   onProgress?: (progress: WhisperDownloadProgress) => void
-): Promise<string> {
-  const modelPath = getWhisperModelPath(model)
-  if (existsSync(modelPath)) return modelPath
-
-  const dir = getWhisperModelDir()
-  await mkdir(dir, { recursive: true })
-  console.log(getWhisperModelUrl(model))
-  const tmpPath = join(dir, `${MODEL_FILE[model]}.part`)
-  const res = await fetch(getWhisperModelUrl(model), { redirect: 'follow' })
+): Promise<void> {
+  const res = await fetch(getSourceUrl(baseUrl, model), { redirect: 'follow' })
 
   if (!res.ok || !res.body) {
-    throw new Error(`模型下载失败（HTTP ${res.status}）：${MODEL_FILE[model]}`)
+    throw new Error(`HTTP ${res.status}`)
+  }
+
+  // 镜像/网关可能对 404 返回 HTML 页面且 status 200，按 content-type 拦截
+  const contentType = res.headers.get('content-type') || ''
+  if (contentType.includes('text/html')) {
+    throw new Error('返回 HTML 页面，疑似未命中模型')
   }
 
   const total = Number(res.headers.get('content-length') || 0)
@@ -131,18 +141,44 @@ export async function downloadModel(
     })
   } catch (err) {
     writer.destroy()
-    await rm(tmpPath, { force: true })
     throw err
   }
 
   // content-length 已知时校验完整性，防止把中断的半成品当成品
   if (total > 0 && loaded < total) {
-    await rm(tmpPath, { force: true })
-    throw new Error(`模型下载不完整：${loaded}/${total} 字节`)
+    throw new Error(`下载不完整：${loaded}/${total} 字节`)
+  }
+}
+
+/**
+ * 下载模型到本地缓存目录（已存在则直接返回路径）。
+ * 依次尝试各个源，全部失败才抛错；先写临时文件再原子重命名，避免中断留下半成品。
+ */
+export async function downloadModel(
+  model: WhisperModel,
+  onProgress?: (progress: WhisperDownloadProgress) => void
+): Promise<string> {
+  const modelPath = getWhisperModelPath(model)
+  if (existsSync(modelPath)) return modelPath
+
+  const dir = getWhisperModelDir()
+  await mkdir(dir, { recursive: true })
+
+  const tmpPath = join(dir, `${MODEL_FILE[model]}.part`)
+  const errors: string[] = []
+
+  for (const baseUrl of MODEL_SOURCES) {
+    try {
+      await downloadFrom(model, baseUrl, tmpPath, onProgress)
+      await rename(tmpPath, modelPath)
+      return modelPath
+    } catch (err) {
+      errors.push(`${baseUrl} -> ${err instanceof Error ? err.message : String(err)}`)
+      await rm(tmpPath, { force: true })
+    }
   }
 
-  await rename(tmpPath, modelPath)
-  return modelPath
+  throw new Error(`模型下载失败，已尝试全部源：\n${errors.join('\n')}`)
 }
 
 /** 构建 whisper-cli 参数 */
@@ -156,7 +192,8 @@ function buildArgs(options: WhisperOptions, wavPath: string): string[] {
     options.language,
     '-of',
     options.outputFileWithoutExt,
-    OUTPUT_FLAG[options.outputExtension]
+    OUTPUT_FLAG[options.outputExtension],
+    '-pp'
   ]
   if (options.translate) args.push('-tr')
   if (options.prompt) args.push('--prompt', options.prompt)
@@ -182,26 +219,58 @@ function convertToWav(inputAudio: string): Promise<string> {
   })
 }
 
-/** 启动 whisper-cli 并等待结束；whisper 的进度与错误都输出在 stderr */
-function runWhisperCli(binary: string, args: string[]): Promise<void> {
+/** 提取 whisper 进度行 `whisper_print_progress_callback: progress = NN%` 中的百分比 */
+const PROGRESS_RE = /progress\s*=\s*(\d+)%/
+
+/**
+ * 启动 whisper-cli 并等待结束；whisper 的进度与错误都输出在 stderr。
+ * 对 stderr 做增量解析：按 \r / \n 切分，实时提取进度回调；
+ * 同时仅保留末尾若干行用于失败时报错，不累积整个 stderr。
+ */
+function runWhisperCli(
+  binary: string,
+  args: string[],
+  onProgress?: (progress: number) => void
+): Promise<void> {
   return new Promise<void>((resolve, reject) => {
     const child = spawn(binary, args, { windowsHide: true })
 
-    let stderr = ''
+    // 尚未以 \r / \n 结束的残段，留待下一个 chunk 补齐
+    let pending = ''
+    // 只留末尾几行，避免长音频时 stderr 无限增长
+    const errorTail: string[] = []
+
     child.stderr.on('data', (chunk: Buffer) => {
-      stderr += chunk.toString()
+      pending += chunk.toString()
+
+      // 进度与日志可能用 \r 原地刷新，须同时按 \r 和 \n 切分
+      const segments = pending.split(/[\r\n]+/)
+      pending = segments.pop() ?? ''
+
+      for (const segment of segments) {
+        if (!segment) continue
+        const match = PROGRESS_RE.exec(segment)
+        if (match) onProgress?.(Number(match[1]))
+        errorTail.push(segment)
+      }
+      if (errorTail.length > 10) errorTail.splice(0, errorTail.length - 10)
     })
 
     child.on('error', reject)
     child.on('close', (code) => {
       if (code === 0) resolve()
-      else reject(new Error(stderr.trim() || `whisper.cpp 进程退出，退出码 ${code}`))
+      else {
+        reject(new Error(errorTail.join('\n').trim() || `whisper.cpp 进程退出，退出码 ${code}`))
+      }
     })
   })
 }
 
 /** 完整识别流程：校验 -> FFmpeg 转码 -> whisper-cli 推理 -> 清理临时文件 */
-async function runWhisper(options: WhisperOptions): Promise<void> {
+async function runWhisper(
+  options: WhisperOptions,
+  onProgress?: (progress: number) => void
+): Promise<void> {
   const binary = getWhisperBinaryPath()
   const model = getWhisperModelPath(options.model)
 
@@ -214,15 +283,11 @@ async function runWhisper(options: WhisperOptions): Promise<void> {
 
   const wavPath = await convertToWav(options.inputAudio)
   try {
-    await runWhisperCli(binary, buildArgs(options, wavPath))
+    await runWhisperCli(binary, buildArgs(options, wavPath), onProgress)
   } finally {
     await rm(wavPath, { force: true })
   }
 }
-
-ipcMain.handle('whisper:transcribe', (_, options: WhisperOptions): Promise<void> => {
-  return runWhisper(options)
-})
 
 ipcMain.handle('whisper:checkModel', (_, model: WhisperModel): boolean => {
   if (existsSync(getWhisperModelPath(model))) return true
@@ -232,5 +297,13 @@ ipcMain.handle('whisper:checkModel', (_, model: WhisperModel): boolean => {
 ipcMain.handle('whisper:downloadModel', (event, model: WhisperModel): Promise<string> => {
   return downloadModel(model, (progress) => {
     event.sender.send('whisper:downloadProgress', progress)
+  })
+})
+
+ipcMain.handle('whisper:transcribe', (_, options: WhisperOptions, id?: number): Promise<void> => {
+  return runWhisper(options, (progress) => {
+    if (id) {
+      setWorkList(id, { progress })
+    }
   })
 })
