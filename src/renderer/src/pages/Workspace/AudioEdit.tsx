@@ -91,7 +91,7 @@ export function AudioEdit(): ReactNode {
   }, [form, isSelecting, onReset])
 
   const onSelectOutput = useCallback(async (): Promise<void> => {
-    if (isSelecting || !inputFile) return
+    if (isSelecting) return
 
     setIsSelecting(true)
     const outputPath = await window.api.selectFolder({
@@ -99,7 +99,7 @@ export function AudioEdit(): ReactNode {
     })
     if (outputPath) form.setFieldValue('outputPath', outputPath)
     setIsSelecting(false)
-  }, [form, inputFile, isSelecting])
+  }, [form, isSelecting])
 
   const onSelectCover = useCallback(async () => {
     if (isSelecting || !inputFile || !checkExt(inputFile.ext)) return
@@ -180,7 +180,6 @@ export function AudioEdit(): ReactNode {
           <Input
             suffix={<FolderOpenOutlined onClick={onSelectOutput} />}
             onClick={onSelectOutput}
-            disabled={!inputFile}
           />
         </Form.Item>
 
@@ -195,7 +194,7 @@ export function AudioEdit(): ReactNode {
             { required: true, message: '请设置输出文件名' }
           ]}
         >
-          <Input disabled={!inputFile} />
+          <Input />
         </Form.Item>
 
         <Form.Item<FieldType>

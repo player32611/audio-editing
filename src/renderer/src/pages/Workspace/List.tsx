@@ -47,7 +47,7 @@ export default function List(): ReactNode {
         res.map((item) => ({
           ...item,
           key: item.id,
-          progress: workList.find((val) => val.id === item.id)?.progress
+          progress: workList.get(item.id)?.progress
         }))
       )
       setIsLoading(false)
@@ -108,7 +108,8 @@ export default function List(): ReactNode {
       }, 0)
     })
 
-    const unsubscribe = window.work.onChanged(() => {
+    const unsubscribe = window.work.onChanged((worklist) => {
+      console.log(worklist)
       onRefresh()
     })
     window.addEventListener('resize', onResize)

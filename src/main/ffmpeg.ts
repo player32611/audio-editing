@@ -6,7 +6,7 @@ import Ffmpeg from 'fluent-ffmpeg'
 import { parseFilePath } from './api'
 import { AUDIO_FILE_EXTENSION } from '../shared/constants'
 import { getCodec, getFormat } from '../shared/utils'
-import { setWorkList } from '.'
+import { setWorkList } from './work'
 import type { CutAudioOptions, GetVoiceOptions, SetAduioTagOptions } from '../shared/type'
 import type { FfprobeData, FfprobeStream } from 'fluent-ffmpeg'
 

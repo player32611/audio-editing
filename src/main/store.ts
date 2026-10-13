@@ -2,6 +2,7 @@ import { app, ipcMain, nativeTheme } from 'electron'
 import Store from 'electron-store'
 import { STORE_KEY } from '../shared/constants'
 import type { Theme, Path } from '../shared/type'
+import { sendMessage } from '.'
 
 let store: Store<Record<string, string>> | null = null
 
@@ -12,6 +13,10 @@ export const initStore = (): Store<Record<string, string>> => {
 
   return store
 }
+
+nativeTheme.on('updated', () => {
+  sendMessage('theme:changed', nativeTheme.shouldUseDarkColors)
+})
 
 ipcMain.handle('theme:set', (_, theme: Theme): Theme => {
   if (!store) throw new Error('本地 store 存储未初始化')

@@ -1,19 +1,19 @@
-import { app, shell, BrowserWindow, nativeTheme, ipcMain, dialog } from 'electron'
+import { app, shell, BrowserWindow, nativeTheme, dialog } from 'electron'
 import { join } from 'node:path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-
 import { STORE_KEY } from '../shared/constants'
-import type { Theme, WorkListItem, WorkStatus } from '../shared/type'
+import type { Theme } from '../shared/type'
+
 import { setupFfmpeg } from './ffmpeg'
 import { initDatabase, selectStatus, updateWorkHistory } from './database'
 import { initStore } from './store'
+import { getAllWorkList } from './work'
 
 setupFfmpeg()
 
 let mainWindow: BrowserWindow | null = null
 const store = initStore()
-const workList = new Map<number, { status: WorkStatus; progress: number }>()
 
 function createWindow(): void {
   if (mainWindow && !mainWindow.isDestroyed()) {
@@ -45,6 +45,8 @@ function createWindow(): void {
 
   mainWindow.on('close', async (event) => {
     if (!mainWindow) return
+
+    const workList = getAllWorkList()
     if (!workList.size) return
 
     event.preventDefault()
@@ -94,33 +96,6 @@ if (!gotTheLock) {
   app.whenReady().then(createWindow)
 }
 
-nativeTheme.on('updated', () => {
-  mainWindow?.webContents.send('theme:changed', nativeTheme.shouldUseDarkColors)
-})
-
-ipcMain.handle('work:set', (_, id: number, { status, progress }: WorkListItem): void => {
-  setWorkList(id, { status, progress })
-})
-
-ipcMain.handle('work:get', (_, id: number): { status: WorkStatus; progress: number } | null => {
-  const res = workList.get(id)
-  if (res) return res
-  return null
-})
-
-ipcMain.handle('work:getAll', (): { id: number; status: WorkStatus; progress: number }[] => {
-  return Array.from(workList, ([key, value]) => ({
-    id: key,
-    status: value.status,
-    progress: value.progress
-  }))
-})
-
-ipcMain.handle('work:delete', (_, id: number) => {
-  workList.delete(id)
-  mainWindow?.webContents.send('work:changed')
-})
-
 // 当 Electron 完成时会调用这个方法
 // 初始化完成，可以创建浏览器窗口了
 // 有些 API 只有在这个事件发生后才能使用
@@ -156,21 +131,12 @@ app.on('window-all-closed', () => {
 })
 
 app.on('before-quit', async () => {
-  console.log('quit')
+  const workList = getAllWorkList()
   const statusId = selectStatus('已中断')
   workList.forEach((_, id) => {
     updateWorkHistory(id, { statusId })
   })
 })
-
-export const setWorkList = (id: number, { status, progress }: WorkListItem): void => {
-  const data = workList.get(id)
-  workList.set(id, {
-    status: status || data?.status || '待处理',
-    progress: progress || data?.progress || 0
-  })
-  mainWindow?.webContents.send('work:changed', workList)
-}
 
 export const sendMessage = (channel: string, ...args: unknown[]): void => {
   if (!mainWindow || mainWindow.isDestroyed()) return

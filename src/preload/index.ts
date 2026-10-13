@@ -95,8 +95,13 @@ const work = {
   get: (id: number) => ipcRenderer.invoke('work:get', id),
   getAll: () => ipcRenderer.invoke('work:getAll'),
   delete: (id: number) => ipcRenderer.invoke('work:delete', id),
-  onChanged: (callback: (worklist: Promise<void>[]) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, worklist: Promise<void>[]): void => {
+  onChanged: (
+    callback: (worklist: Map<number, { status: WorkStatus; progress: number }>) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      worklist: Map<number, { status: WorkStatus; progress: number }>
+    ): void => {
       callback(worklist)
     }
 
