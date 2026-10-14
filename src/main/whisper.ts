@@ -99,6 +99,7 @@ async function downloadFrom(
   tmpPath: string,
   onProgress?: (progress: WhisperDownloadProgress) => void
 ): Promise<void> {
+  console.log(getSourceUrl(baseUrl, model))
   const res = await fetch(getSourceUrl(baseUrl, model), { redirect: 'follow' })
 
   if (!res.ok || !res.body) {
@@ -234,7 +235,7 @@ function runWhisperCli(
 ): Promise<void> {
   return new Promise<void>((resolve, reject) => {
     const child = spawn(binary, args, { windowsHide: true })
-
+    console.log('runCli')
     // 尚未以 \r / \n 结束的残段，留待下一个 chunk 补齐
     let pending = ''
     // 只留末尾几行，避免长音频时 stderr 无限增长
@@ -257,10 +258,17 @@ function runWhisperCli(
     })
 
     child.on('error', reject)
-    child.on('close', (code) => {
+    child.on('close', (code, signal) => {
       if (code === 0) resolve()
       else {
-        reject(new Error(errorTail.join('\n').trim() || `whisper.cpp 进程退出，退出码 ${code}`))
+        // 始终带上退出码/信号：进程崩溃（如访问违例 0xC0000005）时 stderr
+        // 往往只有正常加载日志、没有错误行，只取 stderr 末尾会掩盖真实退出原因。
+        const tail = errorTail.join('\n').trim()
+        reject(
+          new Error(
+            `whisper.cpp 进程异常退出（退出码 ${code}，信号 ${signal}）${tail ? `\n${tail}` : ''}`
+          )
+        )
       }
     })
   })
