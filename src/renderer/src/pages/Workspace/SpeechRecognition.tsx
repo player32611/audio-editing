@@ -35,7 +35,6 @@ interface FieldType {
   model: WhisperModel
   prompt: string
   translate: boolean
-  useGPU: boolean
 }
 
 const { Text } = Typography
@@ -217,10 +216,6 @@ export default function SpeechRecognition(): ReactNode {
         </Form.Item>
 
         <Form.Item<FieldType> name="translate" label="翻译为英文" initialValue={false}>
-          <Switch />
-        </Form.Item>
-
-        <Form.Item<FieldType> name="useGPU" label="启用 GPU 加速" initialValue={true}>
           <Switch />
         </Form.Item>
 

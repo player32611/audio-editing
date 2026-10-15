@@ -59,7 +59,6 @@ ipcMain.handle('ffmpeg:getVoice', (_, options: GetVoiceOptions, id?: number) => 
           setInstanceList(id, work)
         })
         .on('progress', (progress) => {
-          console.log(progress.percent)
           setWorkList(id, { progress: progress.percent })
         })
     }

@@ -1,8 +1,28 @@
 import { shell, ipcMain, dialog, OpenDialogOptions } from 'electron'
 import fs from 'fs'
 import path from 'path'
-import type { FileInfo } from '../shared/type'
 import { readFile } from 'fs/promises'
+import type { FileInfo } from '../shared/type'
+
+export const parseFilePath = (filePath: string): FileInfo => {
+  const ext = path.extname(filePath)
+  const fullName = path.basename(filePath)
+  const name = path.basename(filePath, ext)
+
+  return {
+    name,
+    ext: ext.startsWith('.') ? ext.slice(1) : ext,
+    fullName,
+    dir: path.dirname(filePath)
+  }
+}
+
+export const deleteFile = (filePath: string): void => {
+  if (!fs.existsSync(filePath)) return
+  fs.unlink(filePath, () => {
+    console.log('deleteFile')
+  })
+}
 
 ipcMain.handle('api:selectFile', async (_, options: OpenDialogOptions) => {
   const { canceled, filePaths } = await dialog.showOpenDialog({
@@ -43,19 +63,6 @@ ipcMain.handle('api:existsSync', async (_, path: string): Promise<boolean> => {
   return fs.existsSync(path)
 })
 
-export const parseFilePath = (filePath: string): FileInfo => {
-  const ext = path.extname(filePath)
-  const fullName = path.basename(filePath)
-  const name = path.basename(filePath, ext)
-
-  return {
-    name,
-    ext: ext.startsWith('.') ? ext.slice(1) : ext,
-    fullName,
-    dir: path.dirname(filePath)
-  }
-}
-
 ipcMain.handle('api:parseFilePath', async (_, filePath): Promise<FileInfo> => {
   return parseFilePath(filePath)
 })
@@ -68,4 +75,8 @@ ipcMain.handle('api:loadImage', async (_, filePath: string): Promise<{ dataUrl: 
   return {
     dataUrl: `data:image/${ext};base64,${buffer.toString('base64')}`
   }
+})
+
+ipcMain.handle('api:deleteFile', (_, path: string) => {
+  deleteFile(path)
 })

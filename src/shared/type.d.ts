@@ -117,7 +117,6 @@ export interface WhisperOptions {
   model: WhisperModel
   prompt: string
   translate: boolean
-  useGPU: boolean
 }
 
 export interface WhisperDownloadProgress {

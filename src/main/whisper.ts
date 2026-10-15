@@ -12,7 +12,8 @@ import type {
   WhisperModelOutputExtension,
   WhisperOptions
 } from '../shared/type'
-import { setWorkList } from './work'
+import { setInstanceList, setWorkList } from './work'
+import { SINGAL } from '../shared/constants'
 
 /**
  * 模型下载源（按顺序逐个尝试）。
@@ -74,9 +75,9 @@ export function getWhisperBinaryPath(): string {
   return app.isPackaged ? binaryPath.replace('app.asar', 'app.asar.unpacked') : binaryPath
 }
 
-/** 模型存放目录（环境变量优先；默认缓存于用户数据目录，运行时按需下载） */
+/** 模型存放目录（默认缓存于用户数据目录，运行时按需下载） */
 export function getWhisperModelDir(): string {
-  return process.env.WHISPER_MODEL_DIR || join(app.getPath('userData'), 'models', 'whisper')
+  return join(app.getPath('userData'), 'models', 'whisper')
 }
 
 /** 指定模型的 GGML 文件绝对路径 */
@@ -99,7 +100,6 @@ async function downloadFrom(
   tmpPath: string,
   onProgress?: (progress: WhisperDownloadProgress) => void
 ): Promise<void> {
-  console.log(getSourceUrl(baseUrl, model))
   const res = await fetch(getSourceUrl(baseUrl, model), { redirect: 'follow' })
 
   if (!res.ok || !res.body) {
@@ -205,18 +205,34 @@ function buildArgs(options: WhisperOptions, wavPath: string): string[] {
  * 用内置 FFmpeg 将任意音频转为 whisper-cli 要求的 16k 单声道 WAV，
  * 返回临时文件路径（调用方负责清理）。
  */
-function convertToWav(inputAudio: string): Promise<string> {
+function convertToWav(inputAudio: string, id?: number): Promise<string> {
   const wavPath = join(tmpdir(), `whisper-${randomUUID()}.wav`)
 
   return new Promise<string>((resolve, reject) => {
-    Ffmpeg(inputAudio)
+    let cancelled = false
+    const work = Ffmpeg(inputAudio)
       .audioFrequency(16000)
       .audioChannels(1)
       .audioCodec('pcm_s16le')
       .format('wav')
-      .on('error', reject)
+      .on('error', (err) => {
+        // 停止时以 SIGKILL 标记，供渲染层静默处理（与 FFmpeg 取消链路一致）
+        reject(cancelled ? new Error(SINGAL.SIGKILL) : err)
+      })
       .on('end', () => resolve(wavPath))
-      .save(wavPath)
+
+    if (id) {
+      work.on('start', () => {
+        // 包装 kill：外部 deleteWorkList 触发时先置 cancelled，再杀底层 ffmpeg
+        setInstanceList(id, {
+          kill: (signal?: string | number) => {
+            cancelled = true
+            work.kill(signal ? String(signal) : SINGAL.SIGKILL)
+          }
+        })
+      })
+    }
+    work.save(wavPath)
   })
 }
 
@@ -231,11 +247,13 @@ const PROGRESS_RE = /progress\s*=\s*(\d+)%/
 function runWhisperCli(
   binary: string,
   args: string[],
-  onProgress?: (progress: number) => void
+  onProgress?: (progress: number) => void,
+  id?: number
 ): Promise<void> {
   return new Promise<void>((resolve, reject) => {
     const child = spawn(binary, args, { windowsHide: true })
-    console.log('runCli')
+    if (id) setInstanceList(id, child)
+
     // 尚未以 \r / \n 结束的残段，留待下一个 chunk 补齐
     let pending = ''
     // 只留末尾几行，避免长音频时 stderr 无限增长
@@ -259,6 +277,11 @@ function runWhisperCli(
 
     child.on('error', reject)
     child.on('close', (code, signal) => {
+      // Windows 上 kill 不产生 signal，用 child.killed 区分“用户停止”与“进程崩溃”
+      if (child.killed) {
+        reject(new Error(SINGAL.SIGKILL))
+        return
+      }
       if (code === 0) resolve()
       else {
         // 始终带上退出码/信号：进程崩溃（如访问违例 0xC0000005）时 stderr
@@ -277,6 +300,7 @@ function runWhisperCli(
 /** 完整识别流程：校验 -> FFmpeg 转码 -> whisper-cli 推理 -> 清理临时文件 */
 async function runWhisper(
   options: WhisperOptions,
+  id?: number,
   onProgress?: (progress: number) => void
 ): Promise<void> {
   const binary = getWhisperBinaryPath()
@@ -289,9 +313,15 @@ async function runWhisper(
     throw new Error(`识别模型尚未下载：${model}`)
   }
 
-  const wavPath = await convertToWav(options.inputAudio)
+  const wavPath = await convertToWav(options.inputAudio, id)
   try {
-    await runWhisperCli(binary, buildArgs(options, wavPath), onProgress)
+    await runWhisperCli(binary, buildArgs(options, wavPath), onProgress, id)
+  } catch (err) {
+    // 中途停止时清理半成品输出文件（whisper 逐段写出 txt/srt 等）
+    if (err instanceof Error && err.message.includes(SINGAL.SIGKILL)) {
+      await rm(`${options.outputFileWithoutExt}.${options.outputExtension}`, { force: true })
+    }
+    throw err
   } finally {
     await rm(wavPath, { force: true })
   }
@@ -309,9 +339,7 @@ ipcMain.handle('whisper:downloadModel', (event, model: WhisperModel): Promise<st
 })
 
 ipcMain.handle('whisper:transcribe', (_, options: WhisperOptions, id?: number): Promise<void> => {
-  return runWhisper(options, (progress) => {
-    if (id) {
-      setWorkList(id, { progress })
-    }
+  return runWhisper(options, id, (progress) => {
+    if (id) setWorkList(id, { progress })
   })
 })

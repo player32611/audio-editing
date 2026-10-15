@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, nativeTheme, dialog } from 'electron'
+import { app, shell, BrowserWindow, nativeTheme, Tray, nativeImage, Menu } from 'electron'
 import { join } from 'node:path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -6,13 +6,15 @@ import { STORE_KEY } from '../shared/constants'
 import type { Theme } from '../shared/type'
 
 import { setupFfmpeg } from './ffmpeg'
-import { initDatabase, selectStatus, updateWorkHistory } from './database'
+import { initDatabase, renewStatus, selectStatus, updateWorkHistory } from './database'
 import { initStore } from './store'
 import { getAllWorkList } from './work'
 
 setupFfmpeg()
 
 let mainWindow: BrowserWindow | null = null
+let tray: Tray | null = null
+let isQuitting = false
 const store = initStore()
 
 function createWindow(): void {
@@ -43,24 +45,11 @@ function createWindow(): void {
     nativeTheme.themeSource = store.get(STORE_KEY.THEME) as Theme
   })
 
-  mainWindow.on('close', async (event) => {
-    if (!mainWindow) return
-
-    const workList = getAllWorkList()
-    if (!workList.size) return
-
-    event.preventDefault()
-
-    const { response } = await dialog.showMessageBox(mainWindow, {
-      type: 'question',
-      title: '确认退出',
-      message: `还有 ${workList.size} 个任务正在进行，确定要退出应用吗？`,
-      buttons: ['取消', '退出'],
-      defaultId: 0,
-      cancelId: 0
-    })
-
-    if (response === 1) mainWindow.destroy()
+  mainWindow.on('close', (event) => {
+    if (!isQuitting) {
+      event.preventDefault()
+      mainWindow?.hide()
+    }
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -75,6 +64,38 @@ function createWindow(): void {
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
+}
+
+function createTray(): void {
+  if (tray) return
+
+  const iconPath = app.isPackaged
+    ? join(process.resourcesPath, 'resources', 'icon.png')
+    : join(app.getAppPath(), 'resources', 'icon.png')
+
+  const icon = nativeImage.createFromPath(iconPath)
+
+  if (icon.isEmpty()) {
+    throw new Error(`无法加载托盘图标：${iconPath}`)
+  }
+
+  tray = new Tray(icon)
+  tray.setToolTip('Audio Editing')
+
+  tray.setContextMenu(
+    Menu.buildFromTemplate([
+      {
+        label: '退出程序',
+        click: () => {
+          isQuitting = true
+          app.quit()
+        }
+      }
+    ])
+  )
+
+  tray.on('click', createWindow)
+  tray.on('double-click', createWindow)
 }
 
 const gotTheLock = app.requestSingleInstanceLock()
@@ -111,8 +132,10 @@ app.whenReady().then(() => {
   })
 
   initDatabase()
+  renewStatus()
 
   createWindow()
+  createTray()
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
@@ -131,6 +154,8 @@ app.on('window-all-closed', () => {
 })
 
 app.on('before-quit', async () => {
+  if (!mainWindow) return
+
   const workList = getAllWorkList()
   const statusId = selectStatus('已中断')
   workList.forEach((_, id) => {

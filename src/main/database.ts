@@ -11,7 +11,7 @@ import {
   WorkStatus,
   WorkType
 } from '../shared/type'
-import { deleteBatchWorkList } from './work'
+import { deleteBatchWorkList, deleteWorkList } from './work'
 
 let db: Database.Database | null = null
 
@@ -19,25 +19,6 @@ let db: Database.Database | null = null
  * 打开（不存在则创建）主进程的 SQLite 数据库，返回连接。
  * 仅负责建库与连接，不包含任何增删改查。
  */
-export const initDatabase = (): Database.Database => {
-  if (db) return db
-
-  const dbPath = join(app.getPath('userData'), 'audio-editing.db')
-  db = new Database(dbPath)
-  db.pragma('journal_mode = WAL')
-  db.pragma('foreign_keys = ON')
-  db.pragma('user_version = 1')
-
-  createTable()
-
-  return db
-}
-
-export function getDatabase(): Database.Database {
-  if (!db) throw new Error('数据库尚未初始化')
-
-  return db
-}
 
 const createTable = (): void => {
   if (!db) throw new Error('数据库尚未初始化')
@@ -115,6 +96,39 @@ const createTable = (): void => {
     `)
 }
 
+export const initDatabase = (): Database.Database => {
+  if (db) return db
+
+  const dbPath = join(app.getPath('userData'), 'audio-editing.db')
+  db = new Database(dbPath)
+  db.pragma('journal_mode = WAL')
+  db.pragma('foreign_keys = ON')
+  db.pragma('user_version = 1')
+
+  createTable()
+
+  return db
+}
+
+export function getDatabase(): Database.Database {
+  if (!db) throw new Error('数据库尚未初始化')
+
+  return db
+}
+
+export const renewStatus = (): void => {
+  const failedStatus = selectStatus('已中断')
+  const workedStatus = selectStatus('处理中')
+  const waitedStatus = selectStatus('待处理')
+  const ids = [
+    ...selectWorkHistoryByStatus(workedStatus),
+    ...selectWorkHistoryByStatus(waitedStatus)
+  ]
+  ids.forEach((id) => {
+    updateWorkHistory(id.id, { statusId: failedStatus })
+  })
+}
+
 export const selectAll = (
   database: DatabaseType
 ): StatusTable[] | TypeTable[] | WorkHistoryTable[] => {
@@ -144,6 +158,30 @@ export const selectType = (name: WorkType): number => {
   const res = db.prepare<string, TypeTable>('SELECT id FROM type WHERE name = ?').get(name)
 
   return res?.id || -1
+}
+
+export const selectWorkHistoryById = (id: number): WorkHistoryTable => {
+  if (!db) throw new Error('数据库尚未初始化')
+
+  return db
+    .prepare(
+      `
+        SELECT * FROM work_history WHERE id = ?
+      `
+    )
+    .get(id) as WorkHistoryTable
+}
+
+export const selectWorkHistoryByStatus = (status_id: number): WorkHistoryTable[] => {
+  if (!db) throw new Error('数据库尚未初始化')
+
+  return db
+    .prepare(
+      `
+        SELECT * FROM work_history WHERE status_id = ?
+      `
+    )
+    .all(status_id) as WorkHistoryTable[]
 }
 
 export const selectWorkHistoryUnion = (): WorkHistoryUnion[] => {
@@ -267,6 +305,7 @@ ipcMain.handle('database:deleteById', (_, database: DatabaseType, id: number): v
   `)
 
   stmt.run(id)
+  deleteWorkList(id)
 })
 
 ipcMain.handle('database:deleteBatchByIds', (_, database: DatabaseType, ids: number[]): void => {

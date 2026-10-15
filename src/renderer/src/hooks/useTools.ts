@@ -51,7 +51,6 @@ interface speechRecognizeParams {
   model: WhisperModel
   prompt: string
   translate: boolean
-  useGPU: boolean
 }
 
 export function useTools(): useToolsData {

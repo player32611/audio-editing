@@ -59,7 +59,6 @@ export default function List(): ReactNode {
   const onDelete = useCallback(
     async (ids: number[], title?: string, content?: ReactNode | string) => {
       const workList = await window.work.getAll()
-      console.log(workList)
       let msg = content
       ids.forEach((id) => {
         if (workList.get(id)?.status === '处理中') msg = '选中项正在处理，是否继续删除'
@@ -85,7 +84,6 @@ export default function List(): ReactNode {
             content: '删除成功',
             duration: 2
           })
-          onRefresh()
         })
         .catch(() => {
           message.open({
@@ -96,7 +94,42 @@ export default function List(): ReactNode {
           })
         })
     },
-    [message, modal, onRefresh]
+    [message, modal]
+  )
+
+  const onStop = useCallback(
+    async (id: number) => {
+      const confirmed = await modal.confirm({
+        title: '是否取消',
+        content: '确定要取消当前任务吗？'
+      })
+      if (!confirmed) return
+
+      message.open({
+        key: KEY.MESSAGE,
+        type: 'loading',
+        content: '取消中'
+      })
+      window.work
+        .delete(id)
+        .then(() => {
+          message.open({
+            key: KEY.MESSAGE,
+            type: 'success',
+            content: '取消成功',
+            duration: 2
+          })
+        })
+        .catch(() => {
+          message.open({
+            key: KEY.MESSAGE,
+            type: 'error',
+            content: '取消失败',
+            duration: 2
+          })
+        })
+    },
+    [message, modal]
   )
 
   const onResize = useCallback(() => {
@@ -176,10 +209,18 @@ export default function List(): ReactNode {
     {
       title: '操作',
       key: 'action',
+      width: 150,
       render: (_, record) => (
-        <Button color="danger" variant="link" onClick={() => onDelete([record.id])}>
-          删除
-        </Button>
+        <Space size="small">
+          {record.statusName === '处理中' && (
+            <Button color="danger" variant="link" onClick={() => onStop(record.id)}>
+              取消
+            </Button>
+          )}
+          <Button color="danger" variant="link" onClick={() => onDelete([record.id])}>
+            删除
+          </Button>
+        </Space>
       )
     }
   ]

@@ -34,6 +34,7 @@ declare global {
       existsSync: (path: string) => Promise<boolean>
       parseFilePath: (filePath: string) => Promise<FileInfo>
       loadImage: (filePath: string) => Promise<{ dataUrl: string }>
+      deleteFile: (filePath: string) => Promise<void>
     }
     theme: {
       set: (theme: Theme) => Promise<Theme>

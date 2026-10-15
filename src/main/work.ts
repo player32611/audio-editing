@@ -1,10 +1,17 @@
 import { ipcMain } from 'electron'
 import { sendMessage } from '.'
+import { selectWorkHistoryById } from './database'
+import { deleteFile } from './api'
 import type { WorkListItem } from '../shared/type'
-import type { FfmpegCommand } from 'fluent-ffmpeg'
+import path from 'path'
+
+/** 可被中断的运行实例：FFmpeg 命令或子进程，二者都提供 kill() */
+interface Killable {
+  kill(signal?: string | number): unknown
+}
 
 const workList = new Map<number, WorkListItem>()
-const instanceList = new Map<number, FfmpegCommand>()
+const instanceList = new Map<number, Killable>()
 
 export const setWorkList = (id: number, { status, progress }: WorkListItem): void => {
   const data = workList.get(id)
@@ -26,26 +33,30 @@ export const getAllWorkList = (): Map<number, WorkListItem> => {
 }
 
 export const deleteWorkList = (id: number): void => {
+  const data = selectWorkHistoryById(id)
   instanceList.get(id)?.kill('SIGKILL')
   workList.delete(id)
   instanceList.delete(id)
+  deleteFile(path.join(data.path, data.name))
   sendMessage('work:changed', workList)
 }
 
 export const deleteBatchWorkList = (ids: number[]): void => {
   ids.forEach((id) => {
+    const data = selectWorkHistoryById(id)
     instanceList.get(id)?.kill('SIGKILL')
     workList.delete(id)
     instanceList.delete(id)
+    deleteFile(path.join(data.path, data.name))
   })
   sendMessage('work:changed', workList)
 }
 
-export const setInstanceList = (id: number, instance: FfmpegCommand): void => {
+export const setInstanceList = (id: number, instance: Killable): void => {
   instanceList.set(id, instance)
 }
 
-export const getInstanceList = (id: number): FfmpegCommand | null => {
+export const getInstanceList = (id: number): Killable | null => {
   return instanceList.get(id) || null
 }
 
