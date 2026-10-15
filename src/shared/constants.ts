@@ -52,4 +52,8 @@ export const WHISPER_MODEL_OUTPUT_EXTENSION = {
   LRC: 'lrc',
   CSV: 'csv',
   JSON: 'json'
-}
+} as const
+
+export const SINGAL = {
+  SIGKILL: 'SIGKILL'
+} as const

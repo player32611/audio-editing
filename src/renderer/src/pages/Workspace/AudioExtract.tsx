@@ -102,8 +102,12 @@ export default function AudioExtract(): ReactNode {
         startTime: audioRange[0],
         duration: audioRange[1] - audioRange[0]
       })
-      setIsLoading(false)
-      navigate('/workspace')
+        .then(() => {
+          navigate('/workspace')
+        })
+        .finally(() => {
+          setIsLoading(false)
+        })
     },
     [navigate, getVoice]
   )

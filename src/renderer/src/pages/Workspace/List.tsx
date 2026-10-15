@@ -22,7 +22,7 @@ import dayjs from 'dayjs'
 import { useNavigate } from 'react-router'
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { WorkHistoryUnion } from '../../../../shared/type'
-import { getStatusColor } from '@renderer/utils'
+import { getStatusColor, KEY } from '@renderer/utils'
 
 interface ListData extends WorkHistoryUnion {
   progress?: number
@@ -37,8 +37,6 @@ export default function List(): ReactNode {
   const [pageSize, setPageSize] = useState<number>(Math.floor((window.innerHeight - 260) / 65))
   const { message, modal } = App.useApp()
   const navigate = useNavigate()
-
-  const key = 'delete'
 
   const onRefresh = useCallback(async () => {
     return window.database.selectWorkHistoryUnion().then(async (res) => {
@@ -60,13 +58,21 @@ export default function List(): ReactNode {
 
   const onDelete = useCallback(
     async (ids: number[], title?: string, content?: ReactNode | string) => {
+      const workList = await window.work.getAll()
+      console.log(workList)
+      let msg = content
+      ids.forEach((id) => {
+        if (workList.get(id)?.status === '处理中') msg = '选中项正在处理，是否继续删除'
+      })
+
       const confirmed = await modal.confirm({
         title: title || '是否删除',
-        content: content || '这将从列表删除任务，且无法恢复！'
+        content: msg || '是否从历史任务列表删除任务，且无法恢复！（不删除本地文件）'
       })
       if (!confirmed) return
+
       message.open({
-        key,
+        key: KEY.MESSAGE,
         type: 'loading',
         content: '删除中'
       })
@@ -74,7 +80,7 @@ export default function List(): ReactNode {
         .deleteBatchByIds('work_history', ids)
         .then(() => {
           message.open({
-            key,
+            key: KEY.MESSAGE,
             type: 'success',
             content: '删除成功',
             duration: 2
@@ -83,7 +89,7 @@ export default function List(): ReactNode {
         })
         .catch(() => {
           message.open({
-            key,
+            key: KEY.MESSAGE,
             type: 'error',
             content: '删除失败',
             duration: 2

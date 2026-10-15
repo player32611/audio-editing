@@ -7,6 +7,8 @@ import type {
   WhisperModel,
   WhisperModelOutputExtension
 } from '../../../shared/type'
+import { KEY } from '@renderer/utils'
+import { SINGAL } from '../../../shared/constants'
 
 interface useToolsData {
   getVoice: (params: getVoiceParams) => Promise<void>
@@ -49,17 +51,17 @@ interface speechRecognizeParams {
   model: WhisperModel
   prompt: string
   translate: boolean
+  useGPU: boolean
 }
 
 export function useTools(): useToolsData {
   const { message, notification, modal } = App.useApp()
-  const key = 'message'
 
   const checkPath = useCallback(
     async (inputFile: string, outputFile: string, coverFile?: string): Promise<boolean> => {
       const openMessage = (msg: string): void => {
         message.open({
-          key,
+          key: KEY.MESSAGE,
           type: 'error',
           content: msg,
           duration: 3
@@ -68,27 +70,27 @@ export function useTools(): useToolsData {
 
       const isExistInput = await window.api.existsSync(inputFile)
       if (!isExistInput) {
-        openMessage('输入文件不存在，请重试')
+        openMessage('输入文件不存在，请检查后重试')
         return false
       }
 
       const isExistOutputFile = await window.api.existsSync(outputFile)
       if (isExistOutputFile) {
-        openMessage('已存在同名文件，请重试')
+        openMessage('已存在同名文件，请修改后重试')
         return false
       }
 
       const outputInfo = await window.api.parseFilePath(outputFile)
       const isExistOutputPath = await window.api.existsSync(outputInfo.dir)
       if (!isExistOutputPath) {
-        openMessage('输出文件夹不存在，请重试')
+        openMessage('输出文件夹不存在，请修改后重试')
         return false
       }
 
       if (coverFile) {
         const isExistOuput = await window.api.existsSync(coverFile)
         if (!isExistOuput) {
-          openMessage('封面图片不存在，请重试')
+          openMessage('封面图片不存在，请修改后重试')
           return false
         }
       }
@@ -110,14 +112,14 @@ export function useTools(): useToolsData {
       if (!ifDownload) return false
 
       message.open({
-        key,
+        key: KEY.MESSAGE,
         type: 'loading',
         content: '正在下载模型 0.00%',
         duration: 0
       })
       const unsubscribe = window.whisper.onDownloadProgress((progress) => {
         message.open({
-          key,
+          key: KEY.MESSAGE,
           type: 'loading',
           content: `正在下载模型 ${(progress.percent * 100).toFixed(2)}%`,
           duration: 0
@@ -126,7 +128,7 @@ export function useTools(): useToolsData {
       try {
         await window.whisper.downloadModel(model)
         message.open({
-          key,
+          key: KEY.MESSAGE,
           type: 'success',
           content: '模型下载成功',
           duration: 3
@@ -135,7 +137,7 @@ export function useTools(): useToolsData {
       } catch (err) {
         console.log(err)
         message.open({
-          key,
+          key: KEY.MESSAGE,
           type: 'error',
           content: `模型下载失败: ${err}`,
           duration: 3
@@ -152,7 +154,7 @@ export function useTools(): useToolsData {
     async (id: number) => {
       await window.work.set(id, { status: '处理中', progress: 0 })
       message.open({
-        key,
+        key: KEY.MESSAGE,
         type: 'success',
         content: '已开始处理',
         duration: 3
@@ -177,14 +179,16 @@ export function useTools(): useToolsData {
   )
 
   const onError = useCallback(
-    async (id: number, msg?: string) => {
+    async (id: number, err: Error) => {
+      console.log(err)
       const failedId = await window.database.selectStatus('已中断')
       window.database.updateWorkHistory(id, { statusId: failedId })
       window.work.delete(id)
+      if (err?.message.includes(SINGAL.SIGKILL)) return
       message.open({
-        key,
+        key: KEY.MESSAGE,
         type: 'error',
-        content: msg ? `发生错误: ${msg}` : '发生未知错误，请重试',
+        content: err?.message ? `发生错误: ${err.message}` : '发生未知错误，请重试',
         duration: 3
       })
     },
@@ -194,7 +198,7 @@ export function useTools(): useToolsData {
   const getVoice = useCallback(
     async (params: getVoiceParams) => {
       const checked = await checkPath(params.inputVideo, params.outputAudio)
-      if (!checked) return
+      if (!checked) throw new Error('路径有误')
 
       const outputInfo = await window.api.parseFilePath(params.outputAudio)
       const type = await window.database.selectType('音频提取')
@@ -213,9 +217,8 @@ export function useTools(): useToolsData {
         .then(() => {
           onSuccess(id, outputInfo.fullName)
         })
-        .catch((msg) => {
-          console.log(msg)
-          onError(id, msg)
+        .catch((err: Error) => {
+          onError(id, err)
         })
     },
     [checkPath, onBegin, onSuccess, onError]
@@ -243,9 +246,8 @@ export function useTools(): useToolsData {
         .then(() => {
           onSuccess(id, outputInfo.fullName)
         })
-        .catch((msg) => {
-          console.log(msg)
-          onError(id, msg)
+        .catch((err: Error) => {
+          onError(id, err)
         })
     },
     [checkPath, onBegin, onSuccess, onError]
@@ -273,8 +275,7 @@ export function useTools(): useToolsData {
         .then(() => {
           onSuccess(id, outputInfo.fullName)
         })
-        .catch((err) => {
-          console.log(err)
+        .catch((err: Error) => {
           onError(id, err)
         })
     },
@@ -309,9 +310,8 @@ export function useTools(): useToolsData {
         .then(() => {
           onSuccess(id, outputInfo.fullName)
         })
-        .catch((msg) => {
-          console.log(msg)
-          onError(id, msg)
+        .catch((err: Error) => {
+          onError(id, err)
         })
     },
     [checkPath, checkModel, onBegin, onSuccess, onError]

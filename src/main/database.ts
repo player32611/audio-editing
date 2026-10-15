@@ -11,6 +11,7 @@ import {
   WorkStatus,
   WorkType
 } from '../shared/type'
+import { deleteBatchWorkList } from './work'
 
 let db: Database.Database | null = null
 
@@ -279,4 +280,5 @@ ipcMain.handle('database:deleteBatchByIds', (_, database: DatabaseType, ids: num
   `)
 
   stmt.run(...ids)
+  deleteBatchWorkList(ids)
 })

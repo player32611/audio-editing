@@ -1,8 +1,10 @@
 import { ipcMain } from 'electron'
 import { sendMessage } from '.'
-import type { WorkListItem, WorkStatus } from '../shared/type'
+import type { WorkListItem } from '../shared/type'
+import type { FfmpegCommand } from 'fluent-ffmpeg'
 
-const workList = new Map<number, { status: WorkStatus; progress: number }>()
+const workList = new Map<number, WorkListItem>()
+const instanceList = new Map<number, FfmpegCommand>()
 
 export const setWorkList = (id: number, { status, progress }: WorkListItem): void => {
   const data = workList.get(id)
@@ -13,25 +15,56 @@ export const setWorkList = (id: number, { status, progress }: WorkListItem): voi
   sendMessage('work:changed', workList)
 }
 
-export const getAllWorkList = (): Map<number, { status: WorkStatus; progress: number }> => {
+export const getWorkList = (id: number): WorkListItem | null => {
+  const res = workList.get(id)
+  if (res) return res
+  return null
+}
+
+export const getAllWorkList = (): Map<number, WorkListItem> => {
   return workList
+}
+
+export const deleteWorkList = (id: number): void => {
+  instanceList.get(id)?.kill('SIGKILL')
+  workList.delete(id)
+  instanceList.delete(id)
+  sendMessage('work:changed', workList)
+}
+
+export const deleteBatchWorkList = (ids: number[]): void => {
+  ids.forEach((id) => {
+    instanceList.get(id)?.kill('SIGKILL')
+    workList.delete(id)
+    instanceList.delete(id)
+  })
+  sendMessage('work:changed', workList)
+}
+
+export const setInstanceList = (id: number, instance: FfmpegCommand): void => {
+  instanceList.set(id, instance)
+}
+
+export const getInstanceList = (id: number): FfmpegCommand | null => {
+  return instanceList.get(id) || null
 }
 
 ipcMain.handle('work:set', (_, id: number, { status, progress }: WorkListItem): void => {
   setWorkList(id, { status, progress })
 })
 
-ipcMain.handle('work:get', (_, id: number): { status: WorkStatus; progress: number } | null => {
-  const res = workList.get(id)
-  if (res) return res
-  return null
+ipcMain.handle('work:get', (_, id: number): WorkListItem | null => {
+  return getWorkList(id)
 })
 
-ipcMain.handle('work:getAll', (): Map<number, { status: WorkStatus; progress: number }> => {
+ipcMain.handle('work:getAll', (): Map<number, WorkListItem> => {
   return getAllWorkList()
 })
 
 ipcMain.handle('work:delete', (_, id: number) => {
-  workList.delete(id)
-  sendMessage('work:changed', workList)
+  deleteWorkList(id)
+})
+
+ipcMain.handle('work:deleteBatch', (_, ids: number[]) => {
+  deleteBatchWorkList(ids)
 })
