@@ -19,9 +19,7 @@ export const parseFilePath = (filePath: string): FileInfo => {
 
 export const deleteFile = (filePath: string): void => {
   if (!fs.existsSync(filePath)) return
-  fs.unlink(filePath, () => {
-    console.log('deleteFile')
-  })
+  fs.unlink(filePath, () => {})
 }
 
 ipcMain.handle('api:selectFile', async (_, options: OpenDialogOptions) => {

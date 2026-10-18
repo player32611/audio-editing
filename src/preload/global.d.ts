@@ -79,6 +79,7 @@ declare global {
       set: (id: number, data: WorkListItem) => Promise<void>
       get: (id: number) => Promise<WorkStatus>
       getAll: () => Promise<Map<number, WorkListItem>>
+      complete: (id: number) => Promise<void>
       delete: (id: number) => Promise<void>
       deleteBatch: (ids: number[]) => Promise<void>
       onChanged: (callback: (worklist: Map<number, WorkListItem>) => void) => () => void

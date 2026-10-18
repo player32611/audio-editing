@@ -98,6 +98,7 @@ const work = {
   set: (id: number, data: WorkListItem) => ipcRenderer.invoke('work:set', id, data),
   get: (id: number) => ipcRenderer.invoke('work:get', id),
   getAll: () => ipcRenderer.invoke('work:getAll'),
+  complete: (id: number) => ipcRenderer.invoke('work:complete', id),
   delete: (id: number) => ipcRenderer.invoke('work:delete', id),
   deleteBatch: (ids: number[]) => ipcRenderer.invoke('work:deleteBatch', ids),
   onChanged: (callback: (worklist: Map<number, WorkListItem>) => void) => {

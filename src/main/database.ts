@@ -312,6 +312,8 @@ ipcMain.handle('database:deleteBatchByIds', (_, database: DatabaseType, ids: num
   if (!db) throw new Error('数据库尚未初始化')
   if (ids.length === 0) return
 
+  deleteBatchWorkList(ids)
+
   const placeholders = ids.map(() => '?').join(', ')
   const stmt = db.prepare(`
     DELETE FROM ${database}
@@ -319,5 +321,4 @@ ipcMain.handle('database:deleteBatchByIds', (_, database: DatabaseType, ids: num
   `)
 
   stmt.run(...ids)
-  deleteBatchWorkList(ids)
 })

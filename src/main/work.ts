@@ -2,8 +2,8 @@ import { ipcMain } from 'electron'
 import { sendMessage } from '.'
 import { selectWorkHistoryById } from './database'
 import { deleteFile } from './api'
-import type { WorkListItem } from '../shared/type'
 import path from 'path'
+import type { WorkListItem } from '../shared/type'
 
 /** 可被中断的运行实例：FFmpeg 命令或子进程，二者都提供 kill() */
 interface Killable {
@@ -32,8 +32,16 @@ export const getAllWorkList = (): Map<number, WorkListItem> => {
   return workList
 }
 
+export const completeWorkList = (id: number): void => {
+  workList.delete(id)
+  instanceList.delete(id)
+  sendMessage('work:changed', workList)
+}
+
 export const deleteWorkList = (id: number): void => {
   const data = selectWorkHistoryById(id)
+  if (!data) return
+
   instanceList.get(id)?.kill('SIGKILL')
   workList.delete(id)
   instanceList.delete(id)
@@ -44,6 +52,8 @@ export const deleteWorkList = (id: number): void => {
 export const deleteBatchWorkList = (ids: number[]): void => {
   ids.forEach((id) => {
     const data = selectWorkHistoryById(id)
+    if (!data) return
+
     instanceList.get(id)?.kill('SIGKILL')
     workList.delete(id)
     instanceList.delete(id)
@@ -70,6 +80,10 @@ ipcMain.handle('work:get', (_, id: number): WorkListItem | null => {
 
 ipcMain.handle('work:getAll', (): Map<number, WorkListItem> => {
   return getAllWorkList()
+})
+
+ipcMain.handle('work:complete', (_, id: number) => {
+  completeWorkList(id)
 })
 
 ipcMain.handle('work:delete', (_, id: number) => {

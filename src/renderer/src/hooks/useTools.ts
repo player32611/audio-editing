@@ -166,7 +166,7 @@ export function useTools(): useToolsData {
     async (id: number, filename: string) => {
       const finishStatus = await window.database.selectStatus('已完成')
       await window.database.updateWorkHistory(id, { statusId: finishStatus })
-      await window.work.delete(id)
+      await window.work.complete(id)
       notification.success({
         title: '任务完成',
         description: `您的 ${filename} 已处理完成，请查看`,
