@@ -33,7 +33,8 @@
     "electron-updater": "^6.3.9",
     "fluent-ffmpeg": "^2.1.3",
     "react-router": "^8.4.0",
-    "sass": "^1.105.0"
+    "sass": "^1.105.0",
+    "wavesurfer.js": "^8.0.2"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config-prettier": "^3.0.0",

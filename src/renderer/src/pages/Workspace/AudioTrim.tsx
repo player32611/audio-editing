@@ -15,12 +15,12 @@ import {
 } from 'antd'
 import { useNavigate } from 'react-router'
 import { LeftOutlined, FolderOpenOutlined } from '@ant-design/icons'
-import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useTools } from '@renderer/hooks'
-import { formatSeconds } from '@renderer/utils'
+import { AUDIO_FILE_EXTENSION } from '../../../../shared/constants'
+import { AudioWave, AudioWaveRef } from '@renderer/components/common/AudioWave'
 import type { AudioFileExtension } from '../../../../shared/type'
 import type { FfprobeStream } from 'fluent-ffmpeg'
-import { AUDIO_FILE_EXTENSION } from '../../../../shared/constants'
 
 interface FieldType {
   inputAudio: string
@@ -37,8 +37,12 @@ const { Text } = Typography
 export default function AudioTrim(): ReactNode {
   const [form] = Form.useForm<FieldType>()
   const [inputData, setInputData] = useState<FfprobeStream | null>(null)
+  const [isPlaying, setIsPlaying] = useState<boolean>(false)
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [isSelecting, setIsSelecting] = useState<boolean>(false)
+
+  const waveRef = useRef<AudioWaveRef | null>(null)
+
   const navigate = useNavigate()
   const { cutAudio } = useTools()
 
@@ -59,8 +63,7 @@ export default function AudioTrim(): ReactNode {
     const data = await window.ffmpeg.getAudioStream(inputPath)
     form.setFieldsValue({
       inputAudio: inputPath,
-      outputName: inputName.name,
-      audioRange: [0, Number(data.duration) || 0]
+      outputName: inputName.name
     })
     setInputData(data)
     setIsLoading(false)
@@ -77,8 +80,15 @@ export default function AudioTrim(): ReactNode {
     setIsSelecting(false)
   }, [form, isSelecting])
 
+  const onPlayPause = useCallback(() => {
+    if (!waveRef.current) return
+
+    setIsPlaying(waveRef.current?.playPause())
+  }, [waveRef])
+
   const onReset = useCallback(() => {
     setInputData(null)
+    // setIsPlaying(false)
     form.resetFields()
     window.path.get('output').then((res) => {
       form.setFieldValue('outputPath', res)
@@ -96,9 +106,10 @@ export default function AudioTrim(): ReactNode {
       audioRange
     }) => {
       setIsLoading(true)
+      const fullPath = await window.api.joinPath(outputPath, `${outputName}.${audioExtension}`)
       await cutAudio({
         inputAudio,
-        outputAudio: `${outputPath}\\${outputName}.${audioExtension}`,
+        outputAudio: fullPath,
         audioExtension,
         audioBitrate: `${audioBitrate}k`,
         audioQuality,
@@ -206,31 +217,23 @@ export default function AudioTrim(): ReactNode {
           <InputNumber suffix="k" changeOnWheel />
         </Form.Item>
 
-        <Form.Item<FieldType> name="audioRange" label="截取范围" initialValue={[0, 100]}>
-          <Slider
-            step={0.001}
-            min={0}
-            max={Number(inputData?.duration) || 0}
-            tooltip={{
-              formatter: (value) => formatSeconds(value || 0)
-            }}
-            marks={{
-              0: formatSeconds(0),
-              ...(inputData?.duration && {
-                [inputData.duration]: formatSeconds(Number(inputData.duration))
-              })
-            }}
-            disabled={!inputData}
-            range
+        <Form.Item<FieldType> name="audioRange" label="截取范围" initialValue={[0, 0]}>
+          <AudioWave
+            url={form.getFieldValue('inputAudio')}
+            ref={waveRef}
+            onPlayChange={(isPlaying) => setIsPlaying(isPlaying)}
           />
         </Form.Item>
 
         <Form.Item wrapperCol={{ span: 24 }}>
           <Flex justify="center" align="center" gap={10}>
+            <Button htmlType="button" type="primary" onClick={onPlayPause} disabled={!inputData}>
+              {isPlaying ? '暂停' : '预览'}
+            </Button>
             <Button htmlType="button" onClick={onReset}>
               重置
             </Button>
-            <Button type="primary" htmlType="submit">
+            <Button htmlType="submit" type="primary">
               导出
             </Button>
           </Flex>

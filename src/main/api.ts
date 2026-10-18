@@ -1,6 +1,6 @@
 import { shell, ipcMain, dialog, OpenDialogOptions } from 'electron'
 import fs from 'fs'
-import path from 'path'
+import path, { join } from 'path'
 import { readFile } from 'fs/promises'
 import type { FileInfo } from '../shared/type'
 
@@ -67,6 +67,12 @@ ipcMain.handle('api:parseFilePath', async (_, filePath): Promise<FileInfo> => {
   return parseFilePath(filePath)
 })
 
+ipcMain.handle('api:readFile', async (_, filePath: string) => {
+  const buffer = await readFile(filePath)
+
+  return new Uint8Array(buffer)
+})
+
 ipcMain.handle('api:loadImage', async (_, filePath: string): Promise<{ dataUrl: string }> => {
   const ext = parseFilePath(filePath).ext
 
@@ -79,4 +85,8 @@ ipcMain.handle('api:loadImage', async (_, filePath: string): Promise<{ dataUrl: 
 
 ipcMain.handle('api:deleteFile', (_, path: string) => {
   deleteFile(path)
+})
+
+ipcMain.handle('api:joinPath', (_, ...path: string[]) => {
+  return join(...path)
 })

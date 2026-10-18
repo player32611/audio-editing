@@ -25,8 +25,10 @@ const api = {
   showItemInFolder: (path: string) => ipcRenderer.invoke('api:showItemInFolder', path),
   existsSync: (path: string) => ipcRenderer.invoke('api:existsSync', path),
   parseFilePath: (filePath: string) => ipcRenderer.invoke('api:parseFilePath', filePath),
+  readFile: (filePath: string) => ipcRenderer.invoke('api:readFile', filePath),
   loadImage: (filePath: string) => ipcRenderer.invoke('api:loadImage', filePath),
-  deleteFile: (filePath: string) => ipcRenderer.invoke('api:deleteFile', filePath)
+  deleteFile: (filePath: string) => ipcRenderer.invoke('api:deleteFile', filePath),
+  joinPath: (...path: string[]) => ipcRenderer.invoke('api:joinPath', ...path)
 }
 
 const theme = {

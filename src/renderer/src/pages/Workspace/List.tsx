@@ -137,7 +137,11 @@ export default function List(): ReactNode {
   }, [])
 
   const onNavigate = useCallback(() => {
-    message.info('功能建设中')
+    message.open({
+      key: KEY.MESSAGE,
+      type: 'info',
+      content: '功能建设中'
+    })
   }, [message])
 
   useEffect(() => {

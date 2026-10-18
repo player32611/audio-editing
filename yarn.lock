@@ -5223,6 +5223,11 @@ vite@^7.2.6:
   optionalDependencies:
     fsevents "~2.3.3"
 
+wavesurfer.js@^8.0.2:
+  version "8.0.2"
+  resolved "https://registry.yarnpkg.com/wavesurfer.js/-/wavesurfer.js-8.0.2.tgz#8b0ffcd518a43337686a9975e485dd13299da4c7"
+  integrity sha512-REv2U0DvZIm/i4K61qA7OZ3dGjFNtZFbh0PGRJ4EPcCU3Vs2tiPzIVFw1jipapIQnib76OPH2T8ARNSW47jN+w==
+
 webcrypto-core@^1.9.2:
   version "1.9.2"
   resolved "https://registry.yarnpkg.com/webcrypto-core/-/webcrypto-core-1.9.2.tgz#22dd6a0fb55217b1301eab7151d01d5c68e52ccb"

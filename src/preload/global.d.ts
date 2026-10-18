@@ -33,8 +33,10 @@ declare global {
       showItemInFolder: (path: string) => Promise<boolean>
       existsSync: (path: string) => Promise<boolean>
       parseFilePath: (filePath: string) => Promise<FileInfo>
+      readFile: (filePath: string) => Promise<Uint8Array<ArrayBuffer>>
       loadImage: (filePath: string) => Promise<{ dataUrl: string }>
       deleteFile: (filePath: string) => Promise<void>
+      joinPath: (...path: string[]) => Promise<string>
     }
     theme: {
       set: (theme: Theme) => Promise<Theme>

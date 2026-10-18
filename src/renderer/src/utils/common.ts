@@ -63,3 +63,58 @@ export const formatLanguage = (language: Language): string => {
       return language
   }
 }
+
+/**
+ * 防抖函数：在最后一次调用后的 delay 毫秒执行。
+ */
+export const debounce = <Args extends unknown[]>(
+  func: (...args: Args) => void,
+  delay: number
+): ((...args: Args) => void) => {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null
+
+  return (...args: Args): void => {
+    if (timeoutId !== null) {
+      clearTimeout(timeoutId)
+    }
+
+    timeoutId = setTimeout(() => {
+      func(...args)
+      timeoutId = null
+    }, delay)
+  }
+}
+/**
+ * 节流函数：首次立即执行，后续调用最多每隔 delay 毫秒执行一次，
+ * 并在等待期间保留最后一次调用。
+ */
+export const throttle = <Args extends unknown[]>(
+  func: (...args: Args) => void,
+  delay: number
+): ((...args: Args) => void) => {
+  let lastExecTime = 0
+  let timeoutId: ReturnType<typeof setTimeout> | null = null
+
+  return (...args: Args): void => {
+    const currentTime = Date.now()
+
+    if (timeoutId !== null) {
+      clearTimeout(timeoutId)
+      timeoutId = null
+    }
+
+    if (currentTime - lastExecTime >= delay) {
+      func(...args)
+      lastExecTime = currentTime
+    } else {
+      timeoutId = setTimeout(
+        () => {
+          func(...args)
+          lastExecTime = Date.now()
+          timeoutId = null
+        },
+        delay - (currentTime - lastExecTime)
+      )
+    }
+  }
+}
