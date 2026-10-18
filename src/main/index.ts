@@ -69,15 +69,11 @@ function createWindow(): void {
 function createTray(): void {
   if (tray) return
 
-  const iconPath = app.isPackaged
-    ? join(process.resourcesPath, 'resources', 'icon.png')
-    : join(app.getAppPath(), 'resources', 'icon.png')
+  const iconPath = join(app.getAppPath(), 'resources', 'icon.png')
 
   const icon = nativeImage.createFromPath(iconPath)
 
-  if (icon.isEmpty()) {
-    throw new Error(`无法加载托盘图标：${iconPath}`)
-  }
+  if (icon.isEmpty()) throw new Error(`无法加载托盘图标：${iconPath}`)
 
   tray = new Tray(icon)
   tray.setToolTip('Audio Editing')
