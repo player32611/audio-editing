@@ -3,7 +3,7 @@ import { ReactNode, useEffect, useState } from 'react'
 import zhCN from 'antd/locale/zh_CN'
 
 export default function ThemeProvider({ children }: { children: ReactNode }): ReactNode {
-  const [useDark, setUseDark] = useState<boolean>()
+  const [useDark, setUseDark] = useState<boolean>(true)
 
   useEffect(() => {
     window.theme.isDark().then(setUseDark)

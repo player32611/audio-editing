@@ -9,7 +9,9 @@ let store: Store<Record<string, string>> | null = null
 export const initStore = (): Store<Record<string, string>> => {
   if (store) return store
 
-  store = new Store<Record<string, string>>()
+  store = new Store<Record<string, string>>({
+    defaults: { [STORE_KEY.THEME]: 'system' }
+  })
 
   return store
 }

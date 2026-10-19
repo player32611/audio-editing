@@ -41,8 +41,8 @@ function createWindow(): void {
 
   mainWindow.on('ready-to-show', () => {
     mainWindow?.show()
-    mainWindow?.webContents.send('theme:changed', store.get(STORE_KEY.THEME) === 'dark')
     nativeTheme.themeSource = store.get(STORE_KEY.THEME) as Theme
+    mainWindow?.webContents.send('theme:changed', nativeTheme.shouldUseDarkColors)
   })
 
   mainWindow.on('close', (event) => {
