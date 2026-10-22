@@ -158,7 +158,7 @@ export function AudioEdit(): ReactNode {
       <Divider />
 
       <Form
-        name="config"
+        name="audioEdit"
         form={form}
         labelCol={{ span: 4 }}
         wrapperCol={{ span: 16 }}

@@ -14,7 +14,7 @@ import type {
   SetAduioTagOptions,
   WhisperDownloadProgress,
   WhisperOptions,
-  WhisperModel,
+  WhisperModelType,
   WorkListItem
 } from '../shared/type'
 import type { GetVoiceOptions } from '@sellmind/video-editor-core'
@@ -37,6 +37,8 @@ declare global {
       loadImage: (filePath: string) => Promise<{ dataUrl: string }>
       deleteFile: (filePath: string) => Promise<void>
       joinPath: (...path: string[]) => Promise<string>
+      openExternal: (url: string) => Promise<void>
+      copyFile: (source: string, target: string) => Promise<void>
     }
     theme: {
       set: (theme: Theme) => Promise<Theme>
@@ -60,9 +62,10 @@ declare global {
     }
     whisper: {
       transcribe: (options: WhisperOptions, id?: number) => Promise<void>
-      checkModel: (model: WhisperModel) => Promise<boolean>
-      downloadModel: (model: WhisperModel) => Promise<string>
+      checkModel: (model: WhisperModelType) => Promise<boolean>
+      downloadModel: (model: WhisperModelType) => Promise<string>
       onDownloadProgress: (callback: (progress: WhisperDownloadProgress) => void) => () => void
+      getWhisperModelDir: () => Promise<string>
     }
     database: {
       selectAll: (database: Database) => Promise<StatusTable[]>

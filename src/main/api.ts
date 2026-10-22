@@ -1,19 +1,19 @@
 import { shell, ipcMain, dialog, OpenDialogOptions } from 'electron'
-import fs from 'fs'
-import path, { join } from 'path'
+import fs, { copyFile } from 'fs'
+import { join, basename, extname, dirname } from 'path'
 import { readFile } from 'fs/promises'
 import type { FileInfo } from '../shared/type'
 
 export const parseFilePath = (filePath: string): FileInfo => {
-  const ext = path.extname(filePath)
-  const fullName = path.basename(filePath)
-  const name = path.basename(filePath, ext)
+  const ext = extname(filePath)
+  const fullName = basename(filePath)
+  const name = basename(filePath, ext)
 
   return {
     name,
     ext: ext.startsWith('.') ? ext.slice(1) : ext,
     fullName,
-    dir: path.dirname(filePath)
+    dir: dirname(filePath)
   }
 }
 
@@ -87,4 +87,12 @@ ipcMain.handle('api:deleteFile', (_, path: string) => {
 
 ipcMain.handle('api:joinPath', (_, ...path: string[]) => {
   return join(...path)
+})
+
+ipcMain.handle('api:openExternal', (_, url: string) => {
+  shell.openExternal(url)
+})
+
+ipcMain.handle('api:copyFile', (_, source: string, target: string) => {
+  copyFile(source, target, () => {})
 })

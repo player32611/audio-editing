@@ -4,17 +4,18 @@ import type {
   AudioFileExtension,
   AudioTag,
   Language,
-  WhisperModel,
+  WhisperModelType,
   WhisperModelOutputExtension
 } from '../../../shared/type'
 import { KEY } from '@renderer/utils'
-import { SINGAL } from '../../../shared/constants'
+import { SINGAL, WHISPER_MODEL_NAME } from '../../../shared/constants'
 
 interface useToolsData {
   getVoice: (params: getVoiceParams) => Promise<void>
   cutAudio: (params: CutAudioParams) => Promise<void>
   setAudioTags: (params: SetAudioTagsParams) => Promise<void>
   speechRecognize: (params: speechRecognizeParams) => Promise<void>
+  importModel: (params: importModelParams) => Promise<void>
 }
 
 interface getVoiceParams {
@@ -48,16 +49,21 @@ interface speechRecognizeParams {
   outputFileWithoutExt: string
   outputExtension: WhisperModelOutputExtension
   language: Language
-  model: WhisperModel
+  model: WhisperModelType
   prompt: string
   translate: boolean
+}
+
+interface importModelParams {
+  inputFile: string
+  modelType: WhisperModelType
 }
 
 export function useTools(): useToolsData {
   const { message, notification, modal } = App.useApp()
 
   const checkPath = useCallback(
-    async (inputFile: string, outputFile: string, coverFile?: string): Promise<boolean> => {
+    async (inputFile: string, outputFile?: string, coverFile?: string): Promise<boolean> => {
       const openMessage = (msg: string): void => {
         message.open({
           key: KEY.MESSAGE,
@@ -73,17 +79,19 @@ export function useTools(): useToolsData {
         return false
       }
 
-      const isExistOutputFile = await window.api.existsSync(outputFile)
-      if (isExistOutputFile) {
-        openMessage('已存在同名文件，请修改后重试')
-        return false
-      }
+      if (outputFile) {
+        const isExistOutputFile = await window.api.existsSync(outputFile)
+        if (isExistOutputFile) {
+          openMessage('已存在同名文件，请修改后重试')
+          return false
+        }
 
-      const outputInfo = await window.api.parseFilePath(outputFile)
-      const isExistOutputPath = await window.api.existsSync(outputInfo.dir)
-      if (!isExistOutputPath) {
-        openMessage('输出文件夹不存在，请修改后重试')
-        return false
+        const outputInfo = await window.api.parseFilePath(outputFile)
+        const isExistOutputPath = await window.api.existsSync(outputInfo.dir)
+        if (!isExistOutputPath) {
+          openMessage('输出文件夹不存在，请修改后重试')
+          return false
+        }
       }
 
       if (coverFile) {
@@ -99,8 +107,8 @@ export function useTools(): useToolsData {
     [message]
   )
 
-  const checkModel = useCallback(
-    async (model: WhisperModel) => {
+  const downloadModel = useCallback(
+    async (model: WhisperModelType) => {
       const existModel = await window.whisper.checkModel(model)
       if (existModel) return true
       const ifDownload = await modal.confirm({
@@ -289,7 +297,7 @@ export function useTools(): useToolsData {
       )
       if (!checked) throw new Error('路径有误')
 
-      checked = await checkModel(params.model)
+      checked = await downloadModel(params.model)
       if (!checked) throw new Error('模型未下载')
 
       const outputInfo = await window.api.parseFilePath(params.outputFileWithoutExt)
@@ -313,8 +321,39 @@ export function useTools(): useToolsData {
           onError(id, err)
         })
     },
-    [checkPath, checkModel, onBegin, onSuccess, onError]
+    [checkPath, downloadModel, onBegin, onSuccess, onError]
   )
 
-  return { getVoice, cutAudio, setAudioTags, speechRecognize }
+  const importModel = useCallback(
+    async (params: importModelParams) => {
+      const checked = await checkPath(params.inputFile)
+      if (!checked) throw new Error('路径有误')
+
+      const modelDir = await window.whisper.getWhisperModelDir()
+      const modelPath = await window.api.joinPath(modelDir, WHISPER_MODEL_NAME[params.modelType])
+
+      const isExisted = await window.whisper.checkModel(params.modelType)
+      if (isExisted) {
+        const isConfirm = await modal.confirm({
+          title: '模型已存在',
+          content: '当前选择模型已存在，是否替换？',
+          okText: '替换'
+        })
+        if (!isConfirm) return
+      }
+
+      await window.api
+        .copyFile(params.inputFile, modelPath)
+        .then(() => {
+          message.success('导入成功')
+        })
+        .catch((err) => {
+          console.log(err)
+          message.error(`导入失败: ${err}`)
+        })
+    },
+    [message, modal, checkPath]
+  )
+
+  return { getVoice, cutAudio, setAudioTags, speechRecognize, importModel }
 }

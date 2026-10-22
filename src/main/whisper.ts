@@ -8,12 +8,12 @@ import { join } from 'node:path'
 import Ffmpeg from 'fluent-ffmpeg'
 import type {
   WhisperDownloadProgress,
-  WhisperModel,
+  WhisperModelType,
   WhisperModelOutputExtension,
   WhisperOptions
 } from '../shared/type'
 import { setInstanceList, setWorkList } from './work'
-import { SINGAL } from '../shared/constants'
+import { SINGAL, WHISPER_MODEL_NAME } from '../shared/constants'
 
 /**
  * 模型下载源（按顺序逐个尝试）。
@@ -34,20 +34,6 @@ const MODEL_SOURCES = [
  */
 
 const WHISPER_BINARY_NAME = process.platform === 'win32' ? 'whisper-cli.exe' : 'whisper-cli'
-
-/**
- * UI 模型名 -> whisper.cpp GGML 模型文件名。
- * 官方模型托管于 Hugging Face（见 models/download-ggml-model.cmd）：
- * https://huggingface.co/ggerganov/whisper.cpp/resolve/main/<文件名>
- */
-const MODEL_FILE: Record<WhisperModel, string> = {
-  tiny: 'ggml-tiny.bin',
-  base: 'ggml-base.bin',
-  small: 'ggml-small.bin',
-  medium: 'ggml-medium.bin',
-  large: 'ggml-large-v3.bin',
-  turbo: 'ggml-large-v3-turbo.bin'
-}
 
 /**
  * UI 输出格式 -> whisper-cli 输出参数。
@@ -81,13 +67,13 @@ export function getWhisperModelDir(): string {
 }
 
 /** 指定模型的 GGML 文件绝对路径 */
-export function getWhisperModelPath(model: WhisperModel): string {
-  return join(getWhisperModelDir(), MODEL_FILE[model])
+export function getWhisperModelPath(model: WhisperModelType): string {
+  return join(getWhisperModelDir(), WHISPER_MODEL_NAME[model])
 }
 
 /** 指定模型在某个源下的完整下载地址 */
-function getSourceUrl(baseUrl: string, model: WhisperModel): string {
-  return `${baseUrl}/${MODEL_FILE[model]}`
+function getSourceUrl(baseUrl: string, model: WhisperModelType): string {
+  return `${baseUrl}/${WHISPER_MODEL_NAME[model]}`
 }
 
 /**
@@ -95,7 +81,7 @@ function getSourceUrl(baseUrl: string, model: WhisperModel): string {
  * 失败（网络错误 / 非 2xx / HTML 错误页 / 下载不完整）时抛错，供上层切换下一个源。
  */
 async function downloadFrom(
-  model: WhisperModel,
+  model: WhisperModelType,
   baseUrl: string,
   tmpPath: string,
   onProgress?: (progress: WhisperDownloadProgress) => void
@@ -156,7 +142,7 @@ async function downloadFrom(
  * 依次尝试各个源，全部失败才抛错；先写临时文件再原子重命名，避免中断留下半成品。
  */
 export async function downloadModel(
-  model: WhisperModel,
+  model: WhisperModelType,
   onProgress?: (progress: WhisperDownloadProgress) => void
 ): Promise<string> {
   const modelPath = getWhisperModelPath(model)
@@ -165,7 +151,7 @@ export async function downloadModel(
   const dir = getWhisperModelDir()
   await mkdir(dir, { recursive: true })
 
-  const tmpPath = join(dir, `${MODEL_FILE[model]}.part`)
+  const tmpPath = join(dir, `${WHISPER_MODEL_NAME[model]}.part`)
   const errors: string[] = []
 
   for (const baseUrl of MODEL_SOURCES) {
@@ -327,12 +313,12 @@ async function runWhisper(
   }
 }
 
-ipcMain.handle('whisper:checkModel', (_, model: WhisperModel): boolean => {
+ipcMain.handle('whisper:checkModel', (_, model: WhisperModelType): boolean => {
   if (existsSync(getWhisperModelPath(model))) return true
   return false
 })
 
-ipcMain.handle('whisper:downloadModel', (event, model: WhisperModel): Promise<string> => {
+ipcMain.handle('whisper:downloadModel', (event, model: WhisperModelType): Promise<string> => {
   return downloadModel(model, (progress) => {
     event.sender.send('whisper:downloadProgress', progress)
   })
@@ -342,4 +328,8 @@ ipcMain.handle('whisper:transcribe', (_, options: WhisperOptions, id?: number): 
   return runWhisper(options, id, (progress) => {
     if (id) setWorkList(id, { progress })
   })
+})
+
+ipcMain.handle('whisper:getWhisperModelDir', () => {
+  return getWhisperModelDir()
 })

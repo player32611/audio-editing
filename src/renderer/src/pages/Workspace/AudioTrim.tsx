@@ -151,7 +151,7 @@ export default function AudioTrim(): ReactNode {
       <Divider />
 
       <Form
-        name="config"
+        name="audioTrim"
         form={form}
         labelCol={{ span: 4 }}
         wrapperCol={{ span: 16 }}

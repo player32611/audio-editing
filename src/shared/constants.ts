@@ -45,6 +45,24 @@ export const WHISPER_MODEL_TYPE = {
   TURBO: 'turbo'
 } as const
 
+/**
+ * UI 模型名 -> whisper.cpp GGML 模型文件名。
+ * 官方模型托管于 Hugging Face（见 models/download-ggml-model.cmd）：
+ * https://huggingface.co/ggerganov/whisper.cpp/resolve/main/<文件名>
+ */
+export const WHISPER_MODEL_NAME = {
+  tiny: 'ggml-tiny.bin',
+  base: 'ggml-base.bin',
+  small: 'ggml-small.bin',
+  medium: 'ggml-medium.bin',
+  large: 'ggml-large-v3.bin',
+  turbo: 'ggml-large-v3-turbo.bin'
+} as const
+
+export const WHISPER_MODEL_EXTENSION = {
+  BIN: 'bin'
+} as const
+
 export const WHISPER_MODEL_OUTPUT_EXTENSION = {
   TXT: 'txt',
   SRT: 'srt',

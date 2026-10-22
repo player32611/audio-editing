@@ -19,7 +19,7 @@ export type ImageFileExtension = (typeof IMAGE_FILE_EXTENSION)[keyof typeof IMAG
 
 export type Language = (typeof LANGUAGE)[keyof typeof LANGUAGE]
 
-export type WhisperModel = (typeof WHISPER_MODEL_TYPE)[keyof typeof WHISPER_MODEL_TYPE]
+export type WhisperModelType = (typeof WHISPER_MODEL_TYPE)[keyof typeof WHISPER_MODEL_TYPE]
 
 export type WhisperModelOutputExtension =
   (typeof WHISPER_MODEL_OUTPUT_EXTENSION)[keyof typeof WHISPER_MODEL_OUTPUT_EXTENSION]
@@ -114,13 +114,13 @@ export interface WhisperOptions {
   outputFileWithoutExt: string
   outputExtension: WhisperModelOutputExtension
   language: Language
-  model: WhisperModel
+  model: WhisperModelType
   prompt: string
   translate: boolean
 }
 
 export interface WhisperDownloadProgress {
-  model: WhisperModel
+  model: WhisperModelType
   loaded: number
   total: number
   percent: number

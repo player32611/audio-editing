@@ -23,8 +23,12 @@ import {
   WHISPER_MODEL_TYPE
 } from '../../../../shared/constants'
 import { formatLanguage } from '@renderer/utils'
-import type { Language, WhisperModel, WhisperModelOutputExtension } from '../../../../shared/type'
 import { useTools } from '@renderer/hooks'
+import type {
+  Language,
+  WhisperModelType,
+  WhisperModelOutputExtension
+} from '../../../../shared/type'
 
 interface FieldType {
   inputAudio: string
@@ -32,7 +36,7 @@ interface FieldType {
   outputName: string
   outputExtension: WhisperModelOutputExtension
   language: Language
-  model: WhisperModel
+  model: WhisperModelType
   prompt: string
   translate: boolean
 }
@@ -133,7 +137,7 @@ export default function SpeechRecognition(): ReactNode {
       <Divider />
 
       <Form
-        name="config"
+        name="speechRecognition"
         form={form}
         labelCol={{ span: 4 }}
         wrapperCol={{ span: 16 }}

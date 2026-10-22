@@ -8,7 +8,7 @@ import type {
   SetAduioTagOptions,
   Theme,
   WhisperDownloadProgress,
-  WhisperModel,
+  WhisperModelType,
   WhisperOptions,
   WorkHistoryInsert,
   WorkHistoryTable,
@@ -28,7 +28,9 @@ const api = {
   readFile: (filePath: string) => ipcRenderer.invoke('api:readFile', filePath),
   loadImage: (filePath: string) => ipcRenderer.invoke('api:loadImage', filePath),
   deleteFile: (filePath: string) => ipcRenderer.invoke('api:deleteFile', filePath),
-  joinPath: (...path: string[]) => ipcRenderer.invoke('api:joinPath', ...path)
+  joinPath: (...path: string[]) => ipcRenderer.invoke('api:joinPath', ...path),
+  openExternal: (url: string) => ipcRenderer.invoke('api:openExternal', url),
+  copyFile: (source: string, target: string) => ipcRenderer.invoke('api:copyFile', source, target)
 }
 
 const theme = {
@@ -66,8 +68,8 @@ const ffmpeg = {
 const whisper = {
   transcribe: (options: WhisperOptions, id?: number) =>
     ipcRenderer.invoke('whisper:transcribe', options, id),
-  checkModel: (model: WhisperModel) => ipcRenderer.invoke('whisper:checkModel', model),
-  downloadModel: (model: WhisperModel) => ipcRenderer.invoke('whisper:downloadModel', model),
+  checkModel: (model: WhisperModelType) => ipcRenderer.invoke('whisper:checkModel', model),
+  downloadModel: (model: WhisperModelType) => ipcRenderer.invoke('whisper:downloadModel', model),
   onDownloadProgress: (callback: (progress: WhisperDownloadProgress) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, progress: WhisperDownloadProgress): void =>
       callback(progress)
@@ -75,7 +77,8 @@ const whisper = {
     ipcRenderer.on('whisper:downloadProgress', listener)
 
     return () => ipcRenderer.removeListener('whisper:downloadProgress', listener)
-  }
+  },
+  getWhisperModelDir: () => ipcRenderer.invoke('whisper:getWhisperModelDir')
 }
 
 const database = {

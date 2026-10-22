@@ -16,7 +16,8 @@ import {
   FontColorsOutlined,
   PlusOutlined,
   ScissorOutlined,
-  TranslationOutlined
+  TranslationOutlined,
+  ImportOutlined
 } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import { useNavigate } from 'react-router'
@@ -32,6 +33,7 @@ const { Text } = Typography
 
 export default function List(): ReactNode {
   const [data, setData] = useState<ListData[]>([])
+  const [isGroupOpen, setIsGroupOpen] = useState<boolean>(false)
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [selectIds, setSelectIds] = useState<number[]>([])
   const [pageSize, setPageSize] = useState<number>(Math.floor((window.innerHeight - 260) / 65))
@@ -135,6 +137,10 @@ export default function List(): ReactNode {
   const onResize = useCallback(() => {
     setPageSize(Math.floor((window.innerHeight - 260) / 65))
   }, [])
+
+  const onTriggerGroup = useCallback(() => {
+    setIsGroupOpen(!isGroupOpen)
+  }, [isGroupOpen])
 
   const onNavigate = useCallback(() => {
     message.open({
@@ -264,7 +270,7 @@ export default function List(): ReactNode {
         />
       </Space>
 
-      <FloatButton.Group icon={<PlusOutlined />} type="primary" trigger="click">
+      <FloatButton.Group icon={<PlusOutlined />} type="primary" trigger="click" open={isGroupOpen}>
         <FloatButton
           icon={<EditOutlined />}
           tooltip={{
@@ -309,6 +315,25 @@ export default function List(): ReactNode {
             placement: 'left'
           }}
           onClick={() => onNavigate()}
+        />
+      </FloatButton.Group>
+
+      <FloatButton.Group
+        icon={<PlusOutlined />}
+        type="primary"
+        trigger="click"
+        placement="left"
+        open={isGroupOpen}
+        onClick={onTriggerGroup}
+      >
+        <FloatButton
+          icon={<ImportOutlined />}
+          tooltip={{
+            title: '导入模型',
+            color: 'blue',
+            placement: 'left'
+          }}
+          onClick={() => navigate('/workspace/importModel')}
         />
       </FloatButton.Group>
     </>

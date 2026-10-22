@@ -141,7 +141,7 @@ export default function AudioExtract(): ReactNode {
       <Divider />
 
       <Form
-        name="config"
+        name="audioExtract"
         form={form}
         labelCol={{ span: 4 }}
         wrapperCol={{ span: 16 }}
