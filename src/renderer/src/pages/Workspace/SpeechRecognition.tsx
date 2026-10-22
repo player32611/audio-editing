@@ -11,7 +11,8 @@ import {
   Radio,
   FloatButton,
   type FormProps,
-  Switch
+  Switch,
+  Space
 } from 'antd'
 import { LeftOutlined, FolderOpenOutlined, ExclamationCircleOutlined } from '@ant-design/icons'
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
@@ -143,23 +144,30 @@ export default function SpeechRecognition(): ReactNode {
         wrapperCol={{ span: 16 }}
         onFinish={onFinish}
       >
-        <Form.Item<FieldType>
-          name="inputAudio"
-          label="输入文件"
-          rules={[{ required: true, message: '请选择输入文件' }]}
-        >
-          <Input suffix={<FolderOpenOutlined onClick={onSelectInput} />} onClick={onSelectInput} />
+        <Form.Item<FieldType> label="输入文件" required>
+          <Space.Compact style={{ width: '100%' }}>
+            <Form.Item<FieldType>
+              name="inputAudio"
+              rules={[{ required: true, message: '请选择输入文件' }]}
+              style={{ width: '100%', marginBottom: 0 }}
+            >
+              <Input />
+            </Form.Item>
+            <Button icon={<FolderOpenOutlined />} onClick={onSelectInput}></Button>
+          </Space.Compact>
         </Form.Item>
 
-        <Form.Item<FieldType>
-          name="outputPath"
-          label="输出路径"
-          rules={[{ required: true, message: '请选择输出目录' }]}
-        >
-          <Input
-            suffix={<FolderOpenOutlined onClick={onSelectOutput} />}
-            onClick={onSelectOutput}
-          />
+        <Form.Item<FieldType> label="输出路径" required>
+          <Space.Compact style={{ width: '100%' }}>
+            <Form.Item
+              name="outputPath"
+              rules={[{ required: true, message: '请选择输出目录' }]}
+              style={{ width: '100%', marginBottom: 0 }}
+            >
+              <Input />
+            </Form.Item>
+            <Button icon={<FolderOpenOutlined />} onClick={onSelectOutput}></Button>
+          </Space.Compact>
         </Form.Item>
 
         <Form.Item<FieldType>

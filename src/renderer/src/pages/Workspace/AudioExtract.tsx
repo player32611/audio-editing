@@ -11,7 +11,8 @@ import {
   Spin,
   Row,
   Col,
-  Typography
+  Typography,
+  Space
 } from 'antd'
 import { FolderOpenOutlined, LeftOutlined } from '@ant-design/icons'
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
@@ -39,6 +40,7 @@ export default function AudioExtract(): ReactNode {
   const [inputData, setInputData] = useState<FfprobeFormat | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [isSelecting, setIsSelecting] = useState<boolean>(false)
+
   const navigate = useNavigate()
   const { getVoice } = useTools()
 
@@ -147,23 +149,30 @@ export default function AudioExtract(): ReactNode {
         wrapperCol={{ span: 16 }}
         onFinish={onFinish}
       >
-        <Form.Item<FieldType>
-          name="inputVideo"
-          label="输入文件"
-          rules={[{ required: true, message: '请选择输入文件' }]}
-        >
-          <Input suffix={<FolderOpenOutlined onClick={onSelectInput} />} onClick={onSelectInput} />
+        <Form.Item<FieldType> label="输入文件" required>
+          <Space.Compact style={{ width: '100%' }}>
+            <Form.Item<FieldType>
+              name="inputVideo"
+              rules={[{ required: true, message: '请选择输入文件' }]}
+              style={{ width: '100%', marginBottom: 0 }}
+            >
+              <Input />
+            </Form.Item>
+            <Button icon={<FolderOpenOutlined />} onClick={onSelectInput}></Button>
+          </Space.Compact>
         </Form.Item>
 
-        <Form.Item<FieldType>
-          name="outputPath"
-          label="输出路径"
-          rules={[{ required: true, message: '请选择输出目录' }]}
-        >
-          <Input
-            suffix={<FolderOpenOutlined onClick={onSelectOutput} />}
-            onClick={onSelectOutput}
-          />
+        <Form.Item<FieldType> label="输出路径" required>
+          <Space.Compact style={{ width: '100%' }}>
+            <Form.Item
+              name="outputPath"
+              rules={[{ required: true, message: '请选择输出目录' }]}
+              style={{ width: '100%', marginBottom: 0 }}
+            >
+              <Input />
+            </Form.Item>
+            <Button icon={<FolderOpenOutlined />} onClick={onSelectOutput}></Button>
+          </Space.Compact>
         </Form.Item>
 
         <Form.Item<FieldType>

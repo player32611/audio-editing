@@ -9,6 +9,13 @@ export default function File(): ReactNode {
   const [coverPath, setCoverPath] = useState<string>('')
   const [userDataPath, setUserDataPath] = useState<string>('')
 
+  const onChangeInput = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      window.path.set('input', e.target.value).then(setInputPath)
+    },
+    []
+  )
+
   const onSelectInput = useCallback(() => {
     if (isSelecting) return
 
@@ -23,6 +30,13 @@ export default function File(): ReactNode {
       })
   }, [isSelecting, inputPath])
 
+  const onChangeOutput = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      window.path.set('output', e.target.value).then(setOutputPath)
+    },
+    []
+  )
+
   const onSelectOutput = useCallback(() => {
     if (isSelecting) return
 
@@ -36,6 +50,13 @@ export default function File(): ReactNode {
         setIsSelecting(false)
       })
   }, [isSelecting, outputPath])
+
+  const onChangeCover = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      window.path.set('cover', e.target.value).then(setCoverPath)
+    },
+    []
+  )
 
   const onSelectCover = useCallback(() => {
     if (isSelecting) return
@@ -62,43 +83,42 @@ export default function File(): ReactNode {
     <Space vertical style={{ width: '100%' }}>
       <Flex align="center" gap={10}>
         <div>默认输入目录:</div>
-        <Input
-          value={inputPath}
-          suffix={<FolderOpenOutlined />}
-          onClick={onSelectInput}
-          style={{ flex: 1 }}
-        />
+        <Space.Compact style={{ flex: 1 }}>
+          <Input value={inputPath} onChange={onChangeInput} style={{ flex: 1 }} />
+          <Button icon={<FolderOpenOutlined />} onClick={onSelectInput} />
+        </Space.Compact>
         <Button type="link" onClick={() => window.api.openFolder(inputPath)}>
           打开文件夹
         </Button>
       </Flex>
+
       <Flex align="center" gap={10}>
         <div>默认输出目录:</div>
-        <Input
-          value={outputPath}
-          suffix={<FolderOpenOutlined />}
-          onClick={onSelectOutput}
-          style={{ flex: 1 }}
-        />
+        <Space.Compact style={{ flex: 1 }}>
+          <Input value={outputPath} onChange={onChangeOutput} style={{ flex: 1 }} />
+          <Button icon={<FolderOpenOutlined />} onClick={onSelectOutput} />
+        </Space.Compact>
         <Button type="link" onClick={() => window.api.openFolder(outputPath)}>
           打开文件夹
         </Button>
       </Flex>
+
       <Flex align="center" gap={10}>
         <div>默认封面目录:</div>
-        <Input
-          value={coverPath}
-          suffix={<FolderOpenOutlined />}
-          onClick={onSelectCover}
-          style={{ flex: 1 }}
-        />
+        <Space.Compact style={{ flex: 1 }}>
+          <Input value={coverPath} onChange={onChangeCover} style={{ flex: 1 }} />
+          <Button icon={<FolderOpenOutlined />} onClick={onSelectCover} />
+        </Space.Compact>
         <Button type="link" onClick={() => window.api.openFolder(coverPath)}>
           打开文件夹
         </Button>
       </Flex>
+
       <Flex align="center" gap={10}>
         <div>应用数据目录:</div>
-        <Input value={userDataPath} suffix={<FolderOpenOutlined />} style={{ flex: 1 }} />
+        <Space.Compact style={{ flex: 1 }}>
+          <Input value={userDataPath} style={{ flex: 1 }} readOnly />
+        </Space.Compact>
         <Button type="link" onClick={() => window.api.openFolder(userDataPath)}>
           打开文件夹
         </Button>

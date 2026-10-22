@@ -11,7 +11,8 @@ import {
   Radio,
   FloatButton,
   Spin,
-  type FormProps
+  type FormProps,
+  Space
 } from 'antd'
 import { LeftOutlined, FolderOpenOutlined, ExclamationCircleOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router'
@@ -108,12 +109,17 @@ export default function ImportModel(): ReactNode {
         wrapperCol={{ span: 16 }}
         onFinish={onFinish}
       >
-        <Form.Item<FieldType>
-          name="inputFile"
-          label="输入文件"
-          rules={[{ required: true, message: '请选择输入文件' }]}
-        >
-          <Input suffix={<FolderOpenOutlined onClick={onSelectInput} />} onClick={onSelectInput} />
+        <Form.Item<FieldType> label="输入文件">
+          <Space.Compact style={{ width: '100%' }}>
+            <Form.Item<FieldType>
+              name="inputFile"
+              rules={[{ required: true, message: '请选择输入文件' }]}
+              style={{ width: '100%', marginBottom: 0 }}
+            >
+              <Input />
+            </Form.Item>
+            <Button icon={<FolderOpenOutlined />} onClick={onSelectInput}></Button>
+          </Space.Compact>
         </Form.Item>
 
         <Form.Item<FieldType>

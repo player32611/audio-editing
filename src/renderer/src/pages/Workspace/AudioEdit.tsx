@@ -10,14 +10,15 @@ import {
   Form,
   Image,
   FloatButton,
-  type FormProps
+  type FormProps,
+  Space
 } from 'antd'
 import { FolderOpenOutlined, LeftOutlined, ExclamationCircleOutlined } from '@ant-design/icons'
-import { useCallback, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router'
 import { AUDIO_FILE_EXTENSION, IMAGE_FILE_EXTENSION } from '../../../../shared/constants'
-import type { AudioTag, FileInfo } from '../../../../shared/type'
 import { useTools } from '@renderer/hooks'
+import type { AudioTag, FileInfo } from '../../../../shared/type'
 
 interface FieldType extends AudioTag {
   inputAudio: string
@@ -32,7 +33,7 @@ export function AudioEdit(): ReactNode {
   const [form] = Form.useForm<FieldType>()
   const [inputFile, setInputFile] = useState<FileInfo | null>(null)
   const [coverSrc, setCoverSrc] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState<boolean>(false)
+  const [isLoading, setIsLoading] = useState<boolean>(true)
   const [isSelecting, setIsSelecting] = useState<boolean>(false)
   const navigate = useNavigate()
   const { setAudioTags } = useTools()
@@ -136,6 +137,13 @@ export function AudioEdit(): ReactNode {
     [navigate, setAudioTags]
   )
 
+  useEffect(() => {
+    window.path.get('output').then((res) => {
+      form.setFieldValue('outputPath', res)
+      setIsLoading(false)
+    })
+  }, [form])
+
   return (
     <>
       <Row align="middle">
@@ -164,23 +172,30 @@ export function AudioEdit(): ReactNode {
         wrapperCol={{ span: 16 }}
         onFinish={onFinish}
       >
-        <Form.Item<FieldType>
-          name="inputAudio"
-          label="输入文件"
-          rules={[{ required: true, message: '请选择输入文件' }]}
-        >
-          <Input suffix={<FolderOpenOutlined onClick={onSelectInput} />} onClick={onSelectInput} />
+        <Form.Item<FieldType> label="输入文件" required>
+          <Space.Compact style={{ width: '100%' }}>
+            <Form.Item<FieldType>
+              name="inputAudio"
+              rules={[{ required: true, message: '请选择输入文件' }]}
+              style={{ width: '100%', marginBottom: 0 }}
+            >
+              <Input />
+            </Form.Item>
+            <Button icon={<FolderOpenOutlined />} onClick={onSelectInput}></Button>
+          </Space.Compact>
         </Form.Item>
 
-        <Form.Item<FieldType>
-          name="outputPath"
-          label="输出路径"
-          rules={[{ required: true, message: '请选择输出目录' }]}
-        >
-          <Input
-            suffix={<FolderOpenOutlined onClick={onSelectOutput} />}
-            onClick={onSelectOutput}
-          />
+        <Form.Item<FieldType> label="输出路径" required>
+          <Space.Compact style={{ width: '100%' }}>
+            <Form.Item
+              name="outputPath"
+              rules={[{ required: true, message: '请选择输出目录' }]}
+              style={{ width: '100%', marginBottom: 0 }}
+            >
+              <Input />
+            </Form.Item>
+            <Button icon={<FolderOpenOutlined />} onClick={onSelectOutput}></Button>
+          </Space.Compact>
         </Form.Item>
 
         <Form.Item<FieldType>
@@ -197,16 +212,17 @@ export function AudioEdit(): ReactNode {
           <Input />
         </Form.Item>
 
-        <Form.Item<FieldType>
-          name="coverPath"
-          label="封面"
-          tooltip="由于限制，WAV / AAC / OGG 暂不支持设置封面"
-        >
-          <Input
-            suffix={<FolderOpenOutlined onClick={onSelectCover} />}
-            onClick={onSelectCover}
-            disabled={!inputFile || !checkExt(inputFile.ext)}
-          />
+        <Form.Item<FieldType> label="封面" tooltip="由于限制，WAV / AAC / OGG 暂不支持设置封面">
+          <Space.Compact style={{ width: '100%' }}>
+            <Form.Item name="coverPath" style={{ width: '100%', marginBottom: 0 }}>
+              <Input disabled={!inputFile || !checkExt(inputFile.ext)} />
+            </Form.Item>
+            <Button
+              icon={<FolderOpenOutlined />}
+              onClick={onSelectCover}
+              disabled={!inputFile || !checkExt(inputFile.ext)}
+            ></Button>
+          </Space.Compact>
         </Form.Item>
 
         {coverSrc ? (
