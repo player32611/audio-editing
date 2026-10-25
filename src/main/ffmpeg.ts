@@ -4,7 +4,7 @@ import ffmpegInstaller from '@ffmpeg-installer/ffmpeg'
 import ffprobeInstaller from '@ffprobe-installer/ffprobe'
 import Ffmpeg from 'fluent-ffmpeg'
 import { parseFilePath } from './api'
-import { AUDIO_FILE_EXTENSION } from '../shared/constants'
+import { AUDIO_FILE_EXTENSION, SINGAL } from '../shared/constants'
 import { getCodec, getFormat } from '../shared/utils'
 import { setInstanceList, setWorkList } from './work'
 import type { CutAudioOptions, GetVoiceOptions, SetAduioTagOptions } from '../shared/type'
@@ -15,7 +15,7 @@ import type { FfprobeData, FfprobeStream } from 'fluent-ffmpeg'
  * 参见 electron-builder.yml 中的 asarUnpack
  * 在开发环境中，路径指向 node_modules，替换操作不会有任何效果
  */
-function unpacked(binaryPath: string): string {
+const unpacked = (binaryPath: string): string => {
   return binaryPath.replace('app.asar', 'app.asar.unpacked')
 }
 
@@ -24,7 +24,7 @@ function unpacked(binaryPath: string): string {
  * 和原生的 `exec('ffmpeg …')` shell 命令（需要二进制文件在 PATH 中）。
  * 同时设置两者可以覆盖所有代码路径，而无需用户自己安装 FFmpeg
  */
-export function setupFfmpeg(): void {
+export const setupFfmpeg = (): void => {
   const ffmpegPath = unpacked(ffmpegInstaller.path)
   const ffprobePath = unpacked(ffprobeInstaller.path)
 
@@ -35,6 +35,47 @@ export function setupFfmpeg(): void {
 
   const binDirs = [dirname(ffmpegPath), dirname(ffprobePath)]
   process.env.PATH = [...binDirs, process.env.PATH ?? ''].join(delimiter)
+}
+
+export const cutAudio = (options: CutAudioOptions, id?: number): Promise<void> => {
+  return new Promise<void>((reslove, reject) => {
+    let cancelled = false
+    const work = Ffmpeg(options.inputAudio)
+
+    if (options.audioExtension)
+      work.audioCodec(getCodec(options.audioExtension)).format(getFormat(options.audioExtension))
+    if (options.audioCodec) work.audioCodec(options.audioCodec)
+    if (options.audioChannels) work.audioChannels(options.audioChannels)
+    if (options.audioBitrate) work.audioBitrate(options.audioBitrate)
+    if (options.audioFrequency) work.audioFrequency(options.audioFrequency)
+    if (options.audioQuality) work.audioQuality(options.audioQuality)
+    if (options.startTime && options.duration)
+      work.setStartTime(options.startTime).duration(options.duration)
+
+    work
+      .on('error', (err) => {
+        reject(cancelled ? new Error(SINGAL.SIGKILL) : err)
+      })
+      .on('end', () => {
+        reslove()
+      })
+
+    if (id) {
+      work
+        .on('start', () => {
+          setInstanceList(id, {
+            kill: (signal?: string | number) => {
+              cancelled = true
+              work.kill(signal ? String(signal) : SINGAL.SIGKILL)
+            }
+          })
+        })
+        .on('progress', (progress) => {
+          setWorkList(id, { progress: progress.percent })
+        })
+    }
+    work.save(options.outputAudio)
+  })
 }
 
 ipcMain.handle('ffmpeg:getVoice', (_, options: GetVoiceOptions, id?: number) => {
@@ -67,31 +108,7 @@ ipcMain.handle('ffmpeg:getVoice', (_, options: GetVoiceOptions, id?: number) => 
 })
 
 ipcMain.handle('ffmpeg:cutAudio', (_, options: CutAudioOptions, id?: number) => {
-  return new Promise<void>((reslove, reject) => {
-    const work = Ffmpeg(options.inputAudio)
-      .audioCodec(getCodec(options.audioExtension))
-      .format(getFormat(options.audioExtension))
-      .audioBitrate(options.audioBitrate)
-      .audioQuality(options.audioQuality)
-      .setStartTime(options.startTime)
-      .duration(options.duration)
-      .on('error', (err) => {
-        reject(err)
-      })
-      .on('end', () => {
-        reslove()
-      })
-    if (id) {
-      work
-        .on('start', () => {
-          setInstanceList(id, work)
-        })
-        .on('progress', (progress) => {
-          setWorkList(id, { progress: progress.percent })
-        })
-    }
-    work.save(options.outputAudio)
-  })
+  return cutAudio(options, id)
 })
 
 ipcMain.handle('ffmpeg:getMediaData', (_, path: string) => {

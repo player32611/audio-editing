@@ -1,3 +1,5 @@
+import { KEY } from '@renderer/utils'
+import { App } from 'antd'
 import { useCallback, useEffect, useRef, type ReactNode } from 'react'
 
 interface RealtimeWaveParams {
@@ -10,6 +12,7 @@ export function RealtimeWave({ isRecording }: RealtimeWaveParams): ReactNode {
   const streamRef = useRef<MediaStream | null>(null)
   const contentRef = useRef<AudioContext | null>(null)
   const analyserRef = useRef<AnalyserNode | null>(null)
+  const { message } = App.useApp()
 
   const onUpdate = useCallback((): void => {
     const ctx = canvasRef.current?.getContext('2d')
@@ -49,7 +52,13 @@ export function RealtimeWave({ isRecording }: RealtimeWaveParams): ReactNode {
         streamRef.current = stream
       })
       .catch((err) => {
-        console.error('获取实时频谱失败:', err)
+        console.error('麦克风权限获取失败:', err)
+        message.open({
+          key: KEY.MESSAGE,
+          duration: 3,
+          type: 'error',
+          content: `麦克风权限获取失败: ${err}`
+        })
       })
 
     if (!streamRef.current) return
@@ -65,7 +74,7 @@ export function RealtimeWave({ isRecording }: RealtimeWaveParams): ReactNode {
     source.connect(analyserRef.current)
 
     onUpdate()
-  }, [onUpdate])
+  }, [message, onUpdate])
 
   useEffect(() => {
     if (!isRecording) return

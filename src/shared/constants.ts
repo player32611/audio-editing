@@ -12,6 +12,13 @@ export const AUDIO_FILE_EXTENSION = {
   FLAC: 'flac'
 } as const
 
+export const AUDIO_CODEC = {
+  LIBMP3LAME: 'libmp3lame',
+  AAC: 'aac',
+  PCM_S16LE: 'pcm_s16le',
+  LIBVORBIS: 'libvorbis'
+} as const
+
 export const VIDEO_FILE_EXTENSION = {
   MP4: 'mp4',
   AVI: 'avi',

@@ -29,6 +29,7 @@ interface FieldType {
   outputName: string
   audioExtension: AudioFileExtension
   audioBitrate: number
+  audioFrequency: number
   audioQuality: number
   audioRange: [number, number]
 }
@@ -67,6 +68,7 @@ export default function AudioTrim(): ReactNode {
       outputName: inputName.name
     })
     setInputData(data)
+    setIsPlaying(false)
     setIsLoading(false)
   }, [form, isSelecting])
 
@@ -89,7 +91,7 @@ export default function AudioTrim(): ReactNode {
 
   const onReset = useCallback(() => {
     setInputData(null)
-    // setIsPlaying(false)
+    setIsPlaying(false)
     form.resetFields()
     window.path.get('output').then((res) => {
       form.setFieldValue('outputPath', res)
@@ -103,6 +105,7 @@ export default function AudioTrim(): ReactNode {
       outputName,
       audioExtension,
       audioBitrate,
+      audioFrequency,
       audioQuality,
       audioRange
     }) => {
@@ -112,7 +115,8 @@ export default function AudioTrim(): ReactNode {
         inputAudio,
         outputAudio: fullPath,
         audioExtension,
-        audioBitrate: `${audioBitrate}k`,
+        audioBitrate,
+        audioFrequency: audioFrequency * 1000,
         audioQuality,
         startTime: audioRange[0],
         duration: audioRange[1] - audioRange[0]
@@ -222,7 +226,11 @@ export default function AudioTrim(): ReactNode {
         </Form.Item>
 
         <Form.Item<FieldType> name="audioBitrate" label="音频码率" initialValue={192}>
-          <InputNumber suffix="k" changeOnWheel />
+          <InputNumber suffix="kbps" step={1} style={{ width: 110 }} changeOnWheel />
+        </Form.Item>
+
+        <Form.Item<FieldType> name="audioFrequency" label="采样率" initialValue={44.1}>
+          <InputNumber suffix="kHz" step={0.1} style={{ width: 110 }} changeOnWheel />
         </Form.Item>
 
         <Form.Item<FieldType> name="audioRange" label="截取范围" initialValue={[0, 0]}>

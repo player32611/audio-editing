@@ -36,7 +36,8 @@ interface CutAudioParams {
   inputAudio: string
   outputAudio: string
   audioExtension: AudioFileExtension
-  audioBitrate: string
+  audioBitrate: number
+  audioFrequency: number
   audioQuality: number
   startTime: number
   duration: number
@@ -191,13 +192,16 @@ export function useTools(): useToolsData {
   )
 
   const onSuccess = useCallback(
-    async (id: number, filename: string) => {
-      const finishStatus = await window.database.selectStatus('已完成')
-      await window.database.updateWorkHistory(id, { statusId: finishStatus })
-      await window.work.complete(id)
+    async (id?: number | null, filename?: string | null) => {
+      if (id) {
+        const finishStatus = await window.database.selectStatus('已完成')
+        await window.database.updateWorkHistory(id, { statusId: finishStatus })
+        await window.work.complete(id)
+      }
+
       notification.success({
         title: '任务完成',
-        description: `您的 ${filename} 已处理完成，请查看`,
+        description: filename ? `您的 ${filename} 已处理完成，请查看` : '已处理完成，请查看',
         showProgress: true,
         duration: 3
       })
@@ -206,12 +210,16 @@ export function useTools(): useToolsData {
   )
 
   const onError = useCallback(
-    async (id: number, err: Error) => {
+    async (id: number | null, err: Error) => {
       console.log(err)
-      const failedId = await window.database.selectStatus('已中断')
-      window.database.updateWorkHistory(id, { statusId: failedId })
-      window.work.delete(id)
+      if (id) {
+        const failedId = await window.database.selectStatus('已中断')
+        window.database.updateWorkHistory(id, { statusId: failedId })
+        window.work.delete(id)
+      }
+
       if (err?.message.includes(SINGAL.SIGKILL)) return
+
       message.open({
         key: KEY.MESSAGE,
         type: 'error',
@@ -368,13 +376,13 @@ export function useTools(): useToolsData {
       await window.api
         .copyFile(params.inputFile, modelPath)
         .then(() => {
-          message.success('导入成功')
+          onSuccess()
         })
         .catch((err) => {
-          message.error(`导入失败: ${err}`)
+          onError(null, err)
         })
     },
-    [message, modal, checkPath]
+    [modal, checkPath, onSuccess, onError]
   )
 
   const startRecognize = useCallback(
@@ -384,14 +392,18 @@ export function useTools(): useToolsData {
 
       if (onRecognize) unsubscribeRecognizeRef.current = window.whisper.onRecognize(onRecognize)
 
-      await window.whisper.startRecognize(options)
+      await window.whisper.startRecognize(options).catch((err) => {
+        onError(null, err)
+      })
     },
-    [downloadModel]
+    [downloadModel, onError]
   )
 
   const stopRecognize = useCallback(async () => {
-    await window.whisper.stopRecognize()
-  }, [])
+    await window.whisper.stopRecognize().catch((err) => {
+      onError(null, err)
+    })
+  }, [onError])
 
   const saveContent = useCallback(
     async (params: SaveContentParams) => {

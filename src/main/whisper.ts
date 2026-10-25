@@ -5,20 +5,22 @@ import { createWriteStream, existsSync } from 'node:fs'
 import { mkdir, rename, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import Ffmpeg from 'fluent-ffmpeg'
 import type {
   WhisperDownloadProgress,
   WhisperModelType,
   AudioRecognizeOptions,
-  StartRecognizeOptions
+  StartRecognizeOptions,
+  CutAudioOptions
 } from '../shared/type'
 import { setInstanceList, setWorkList } from './work'
 import {
   WHISPER_MODEL_SOURCES,
   SINGAL,
   WHISPER_MODEL_NAME,
-  WHISPER_CLI_OUTPUT_FLAG
+  WHISPER_CLI_OUTPUT_FLAG,
+  AUDIO_CODEC
 } from '../shared/constants'
+import { cutAudio } from './ffmpeg'
 
 /** 当前进行中的 whisper-stream 进程（同一时刻只允许一个） */
 let streamProcess: ChildProcess | null = null
@@ -186,41 +188,6 @@ function buildArgs(options: AudioRecognizeOptions, wavPath: string): string[] {
 }
 
 /**
- * 用内置 FFmpeg 将任意音频转为 whisper-cli 要求的 16k 单声道 WAV，
- * 返回临时文件路径（调用方负责清理）。
- */
-function convertToWav(inputAudio: string, id?: number): Promise<string> {
-  const wavPath = join(tmpdir(), `whisper-${randomUUID()}.wav`)
-
-  return new Promise<string>((resolve, reject) => {
-    let cancelled = false
-    const work = Ffmpeg(inputAudio)
-      .audioFrequency(16000)
-      .audioChannels(1)
-      .audioCodec('pcm_s16le')
-      .format('wav')
-      .on('error', (err) => {
-        // 停止时以 SIGKILL 标记，供渲染层静默处理（与 FFmpeg 取消链路一致）
-        reject(cancelled ? new Error(SINGAL.SIGKILL) : err)
-      })
-      .on('end', () => resolve(wavPath))
-
-    if (id) {
-      work.on('start', () => {
-        // 包装 kill：外部 deleteWorkList 触发时先置 cancelled，再杀底层 ffmpeg
-        setInstanceList(id, {
-          kill: (signal?: string | number) => {
-            cancelled = true
-            work.kill(signal ? String(signal) : SINGAL.SIGKILL)
-          }
-        })
-      })
-    }
-    work.save(wavPath)
-  })
-}
-
-/**
  * 启动 whisper-cli 并等待结束；whisper 的进度与错误都输出在 stderr。
  * 对 stderr 做增量解析：按 \r / \n 切分，实时提取进度回调；
  * 同时仅保留末尾若干行用于失败时报错，不累积整个 stderr。
@@ -307,10 +274,17 @@ ipcMain.handle(
     if (!existsSync(binary)) throw new Error(`whisper.cpp 二进制未找到：${binary}`)
     if (!existsSync(model)) throw new Error(`识别模型尚未下载：${model}`)
 
-    const wavPath = await convertToWav(options.inputAudio, id)
+    const wavOptions: CutAudioOptions = {
+      inputAudio: options.inputAudio,
+      outputAudio: join(tmpdir(), `whisper-${randomUUID()}.wav`),
+      audioCodec: AUDIO_CODEC.PCM_S16LE,
+      audioExtension: 'wav',
+      audioFrequency: 16000
+    }
+    await cutAudio(wavOptions, id)
     await runWhisperCli(
       binary,
-      buildArgs(options, wavPath),
+      buildArgs(options, wavOptions.outputAudio),
       (progress) => {
         if (id) setWorkList(id, { progress })
       },
@@ -323,7 +297,7 @@ ipcMain.handle(
         throw err
       })
       .finally(async () => {
-        await rm(wavPath, { force: true })
+        await rm(wavOptions.outputAudio, { force: true })
       })
   }
 )

@@ -1,3 +1,4 @@
+import { AUDIO_CODEC } from './constants'
 import { AudioFileExtension } from './type'
 
 export const getFormat = (extension: AudioFileExtension): string => {
@@ -14,15 +15,15 @@ export const getFormat = (extension: AudioFileExtension): string => {
 export const getCodec = (extension: AudioFileExtension): string => {
   switch (extension) {
     case 'mp3':
-      return 'libmp3lame'
+      return AUDIO_CODEC.LIBMP3LAME
     case 'aac':
-      return 'aac'
+      return AUDIO_CODEC.AAC
     case 'm4a':
-      return 'aac'
+      return AUDIO_CODEC.AAC
     case 'wav':
-      return 'pcm_s16le'
+      return AUDIO_CODEC.PCM_S16LE
     case 'ogg':
-      return 'libvorbis'
+      return AUDIO_CODEC.LIBVORBIS
     default:
       return extension
   }

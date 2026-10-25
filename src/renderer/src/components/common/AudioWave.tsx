@@ -119,6 +119,7 @@ export function AudioWave({ value, url, ref, onChange, onPlayChange }: AudioWave
 
       onChangeRef.current?.([0, duration])
       pointerPercent.current = 0
+      onPointerUpdate(0)
 
       setSliderConfig({
         ...config,

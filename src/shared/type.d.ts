@@ -4,7 +4,8 @@ import {
   LANGUAGE,
   VIDEO_FILE_EXTENSION,
   WHISPER_MODEL_TYPE,
-  WHISPER_MODEL_OUTPUT_EXTENSION
+  WHISPER_MODEL_OUTPUT_EXTENSION,
+  AUDIO_CODEC
 } from './constants'
 
 export type Theme = 'dark' | 'light' | 'system'
@@ -12,6 +13,8 @@ export type Theme = 'dark' | 'light' | 'system'
 export type Path = 'output' | 'input' | 'cover'
 
 export type AudioFileExtension = (typeof AUDIO_FILE_EXTENSION)[keyof typeof AUDIO_FILE_EXTENSION]
+
+export type AudioCodec = (typeof AUDIO_CODEC)[keyof typeof AUDIO_CODEC]
 
 export type VideoFileExtension = (typeof VIDEO_FILE_EXTENSION)[keyof typeof VIDEO_FILE_EXTENSION]
 
@@ -96,11 +99,14 @@ export interface GetVoiceOptions {
 export interface CutAudioOptions {
   inputAudio: string
   outputAudio: string
-  audioExtension: AudioFileExtension
-  audioBitrate: string
-  audioQuality: number
-  startTime: number
-  duration: number
+  audioExtension?: AudioFileExtension
+  audioCodec?: AudioCodec
+  audioChannels?: number
+  audioBitrate?: number
+  audioFrequency?: number
+  audioQuality?: number
+  startTime?: number
+  duration?: number
 }
 
 export interface SetAduioTagOptions extends AudioTag {
