@@ -1,7 +1,8 @@
 import { shell, ipcMain, dialog, OpenDialogOptions } from 'electron'
-import fs, { copyFile } from 'fs'
+import { copyFile, createWriteStream, existsSync, unlink } from 'fs'
 import { join, basename, extname, dirname } from 'path'
 import { readFile } from 'fs/promises'
+import { setInstanceList } from './work'
 import type { FileInfo } from '../shared/type'
 
 export const parseFilePath = (filePath: string): FileInfo => {
@@ -18,8 +19,8 @@ export const parseFilePath = (filePath: string): FileInfo => {
 }
 
 export const deleteFile = (filePath: string): void => {
-  if (!fs.existsSync(filePath)) return
-  fs.unlink(filePath, () => {})
+  if (!existsSync(filePath)) return
+  unlink(filePath, () => {})
 }
 
 ipcMain.handle('api:selectFile', async (_, options: OpenDialogOptions) => {
@@ -51,14 +52,14 @@ ipcMain.handle('api:openFolder', (_, path: string): Promise<string> => {
 })
 
 ipcMain.handle('api:showItemInFolder', async (_, path: string): Promise<boolean> => {
-  const exist = fs.existsSync(path)
+  const exist = existsSync(path)
   if (exist) shell.showItemInFolder(path)
   else throw new Error('文件不存在')
   return exist
 })
 
 ipcMain.handle('api:existsSync', async (_, path: string): Promise<boolean> => {
-  return fs.existsSync(path)
+  return existsSync(path)
 })
 
 ipcMain.handle('api:parseFilePath', async (_, filePath): Promise<FileInfo> => {
@@ -95,4 +96,29 @@ ipcMain.handle('api:openExternal', (_, url: string) => {
 
 ipcMain.handle('api:copyFile', (_, source: string, target: string) => {
   copyFile(source, target, () => {})
+})
+
+ipcMain.handle('api:writeFile', (_, filePath: string, content: string, id?: number) => {
+  return new Promise<void>((resolve, reject) => {
+    const work = createWriteStream(filePath, { encoding: 'utf8' })
+
+    work.on('finish', () => {
+      resolve()
+    })
+    work.on('error', (err) => {
+      reject(err)
+    })
+    if (id) {
+      work.on('open', () => {
+        setInstanceList(id, {
+          kill: (signal) => {
+            work.destroy(new Error(String(signal)))
+          }
+        })
+      })
+    }
+
+    work.write(content)
+    work.end()
+  })
 })

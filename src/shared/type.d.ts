@@ -28,7 +28,7 @@ export type Database = 'status' | 'type' | 'work_history'
 
 export type WorkStatus = '待处理' | '处理中' | '已完成' | '已中断'
 
-export type WorkType = '音频编辑' | '音频提取' | '音频裁剪' | '汉英转译' | '语音识别'
+export type WorkType = '音频编辑' | '音频提取' | '音频裁剪' | '汉英转译' | '语音识别' | '实时识别'
 
 export interface FileInfo {
   name: string
@@ -109,7 +109,7 @@ export interface SetAduioTagOptions extends AudioTag {
   coverPath?: string
 }
 
-export interface WhisperOptions {
+export interface AudioRecognizeOptions {
   inputAudio: string
   outputFileWithoutExt: string
   outputExtension: WhisperModelOutputExtension
@@ -124,4 +124,9 @@ export interface WhisperDownloadProgress {
   loaded: number
   total: number
   percent: number
+}
+
+export interface StartRecognizeOptions {
+  model: WhisperModelType
+  language?: Language
 }

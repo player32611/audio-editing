@@ -29,6 +29,7 @@
     "@ffprobe-installer/ffprobe": "^2.1.2",
     "antd": "^6.6.5",
     "better-sqlite3": "^13.0.3",
+    "dayjs": "^1.11.23",
     "electron-store": "^11.0.2",
     "electron-updater": "^6.3.9",
     "fluent-ffmpeg": "^2.1.3",

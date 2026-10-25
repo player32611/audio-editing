@@ -55,7 +55,7 @@ export default function ImportModel(): ReactNode {
     form.setFieldValue('inputFile', inputPath)
     const info = await window.api.parseFilePath(inputPath)
     const isInclude = Object.entries(WHISPER_MODEL_NAME).find(([, v]) => v == info.fullName)
-    if (isInclude) form.setFieldValue('modelType', isInclude[0])
+    if (isInclude) form.setFieldValue('modelType', isInclude[0].toLowerCase())
     setIsLoading(false)
   }, [form, isSelecting])
 
@@ -109,7 +109,7 @@ export default function ImportModel(): ReactNode {
         wrapperCol={{ span: 16 }}
         onFinish={onFinish}
       >
-        <Form.Item<FieldType> label="输入文件">
+        <Form.Item<FieldType> label="输入文件" required>
           <Space.Compact style={{ width: '100%' }}>
             <Form.Item<FieldType>
               name="inputFile"

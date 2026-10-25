@@ -13,9 +13,10 @@ import type {
   FileInfo,
   SetAduioTagOptions,
   WhisperDownloadProgress,
-  WhisperOptions,
+  AudioRecognizeOptions,
   WhisperModelType,
-  WorkListItem
+  WorkListItem,
+  StartRecognizeOptions
 } from '../shared/type'
 import type { GetVoiceOptions } from '@sellmind/video-editor-core'
 import type { OpenDialogOptions } from 'electron'
@@ -39,6 +40,7 @@ declare global {
       joinPath: (...path: string[]) => Promise<string>
       openExternal: (url: string) => Promise<void>
       copyFile: (source: string, target: string) => Promise<void>
+      writeFile: (filePath: string, content: string, id?: number) => Promise<void>
     }
     theme: {
       set: (theme: Theme) => Promise<Theme>
@@ -61,11 +63,14 @@ declare global {
       setAudioTags: (options: SetAduioTagOptions, id?: number) => Promise<void>
     }
     whisper: {
-      transcribe: (options: WhisperOptions, id?: number) => Promise<void>
+      audioRecognize: (options: AudioRecognizeOptions, id?: number) => Promise<void>
       checkModel: (model: WhisperModelType) => Promise<boolean>
       downloadModel: (model: WhisperModelType) => Promise<string>
       onDownloadProgress: (callback: (progress: WhisperDownloadProgress) => void) => () => void
       getWhisperModelDir: () => Promise<string>
+      onRecognize: (callback: (text: string) => void) => () => void
+      startRecognize: (options: StartRecognizeOptions) => Promise<void>
+      stopRecognize: () => Promise<void>
     }
     database: {
       selectAll: (database: Database) => Promise<StatusTable[]>

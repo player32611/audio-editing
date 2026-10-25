@@ -29,7 +29,7 @@ interface FieldType extends AudioTag {
 
 const { Text } = Typography
 
-export function AudioEdit(): ReactNode {
+export default function AudioEdit(): ReactNode {
   const [form] = Form.useForm<FieldType>()
   const [inputFile, setInputFile] = useState<FileInfo | null>(null)
   const [coverSrc, setCoverSrc] = useState<string | null>(null)

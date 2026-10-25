@@ -6,10 +6,11 @@ import type {
   GetVoiceOptions,
   Path,
   SetAduioTagOptions,
+  StartRecognizeOptions,
   Theme,
   WhisperDownloadProgress,
   WhisperModelType,
-  WhisperOptions,
+  AudioRecognizeOptions,
   WorkHistoryInsert,
   WorkHistoryTable,
   WorkListItem,
@@ -30,7 +31,9 @@ const api = {
   deleteFile: (filePath: string) => ipcRenderer.invoke('api:deleteFile', filePath),
   joinPath: (...path: string[]) => ipcRenderer.invoke('api:joinPath', ...path),
   openExternal: (url: string) => ipcRenderer.invoke('api:openExternal', url),
-  copyFile: (source: string, target: string) => ipcRenderer.invoke('api:copyFile', source, target)
+  copyFile: (source: string, target: string) => ipcRenderer.invoke('api:copyFile', source, target),
+  writeFile: (filePath: string, content: string, id?: number) =>
+    ipcRenderer.invoke('api:writeFile', filePath, content, id)
 }
 
 const theme = {
@@ -66,8 +69,8 @@ const ffmpeg = {
 }
 
 const whisper = {
-  transcribe: (options: WhisperOptions, id?: number) =>
-    ipcRenderer.invoke('whisper:transcribe', options, id),
+  audioRecognize: (options: AudioRecognizeOptions, id?: number) =>
+    ipcRenderer.invoke('whisper:audioRecognize', options, id),
   checkModel: (model: WhisperModelType) => ipcRenderer.invoke('whisper:checkModel', model),
   downloadModel: (model: WhisperModelType) => ipcRenderer.invoke('whisper:downloadModel', model),
   onDownloadProgress: (callback: (progress: WhisperDownloadProgress) => void) => {
@@ -78,7 +81,15 @@ const whisper = {
 
     return () => ipcRenderer.removeListener('whisper:downloadProgress', listener)
   },
-  getWhisperModelDir: () => ipcRenderer.invoke('whisper:getWhisperModelDir')
+  getWhisperModelDir: () => ipcRenderer.invoke('whisper:getWhisperModelDir'),
+  onRecognize: (callback: (text: string) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, text: string): void => callback(text)
+    ipcRenderer.on('whisper:recognizeText', listener)
+    return () => ipcRenderer.removeListener('whisper:recognizeText', listener)
+  },
+  startRecognize: (options: StartRecognizeOptions) =>
+    ipcRenderer.invoke('whisper:startRecognize', options),
+  stopRecognize: () => ipcRenderer.invoke('whisper:stopRecognize')
 }
 
 const database = {

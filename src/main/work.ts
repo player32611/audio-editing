@@ -5,7 +5,6 @@ import { deleteFile } from './api'
 import path from 'path'
 import type { WorkListItem } from '../shared/type'
 
-/** 可被中断的运行实例：FFmpeg 命令或子进程，二者都提供 kill() */
 interface Killable {
   kill(signal?: string | number): unknown
 }

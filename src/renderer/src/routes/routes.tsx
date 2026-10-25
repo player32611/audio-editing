@@ -8,9 +8,10 @@ import AudioExtract from '@renderer/pages/Workspace/AudioExtract'
 import List from '@renderer/pages/Workspace/List'
 import File from '@renderer/pages/Settings/Systems/File'
 import AudioTrim from '@renderer/pages/Workspace/AudioTrim'
-import { AudioEdit } from '@renderer/pages/Workspace/AudioEdit'
+import AudioEdit from '@renderer/pages/Workspace/AudioEdit'
 import SpeechRecognition from '@renderer/pages/Workspace/SpeechRecognition'
 import ImportModel from '@renderer/pages/Workspace/ImportModel'
+import RealtimeRecognition from '@renderer/pages/Workspace/RealtimeRecognition'
 
 const router = createHashRouter([
   {
@@ -26,7 +27,7 @@ const router = createHashRouter([
             element: <List />
           },
           {
-            path: 'extract',
+            path: 'audioExtract',
             element: <AudioExtract />
           },
           {
@@ -44,6 +45,10 @@ const router = createHashRouter([
           {
             path: 'importModel',
             element: <ImportModel />
+          },
+          {
+            path: 'realtimeRecognition',
+            element: <RealtimeRecognition />
           }
         ]
       },

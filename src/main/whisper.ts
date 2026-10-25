@@ -1,5 +1,5 @@
 import { app, ipcMain } from 'electron'
-import { spawn } from 'node:child_process'
+import { spawn, type ChildProcess } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { createWriteStream, existsSync } from 'node:fs'
 import { mkdir, rename, rm } from 'node:fs/promises'
@@ -9,22 +9,19 @@ import Ffmpeg from 'fluent-ffmpeg'
 import type {
   WhisperDownloadProgress,
   WhisperModelType,
-  WhisperModelOutputExtension,
-  WhisperOptions
+  AudioRecognizeOptions,
+  StartRecognizeOptions
 } from '../shared/type'
 import { setInstanceList, setWorkList } from './work'
-import { SINGAL, WHISPER_MODEL_NAME } from '../shared/constants'
+import {
+  WHISPER_MODEL_SOURCES,
+  SINGAL,
+  WHISPER_MODEL_NAME,
+  WHISPER_CLI_OUTPUT_FLAG
+} from '../shared/constants'
 
-/**
- * 模型下载源（按顺序逐个尝试）。
- * 1. hf-mirror：国内社区镜像，直连快（解决无法访问 huggingface.co 的问题）；
- * 2. 官方源：能访问 huggingface.co 时使用（有代理 / 可直连）。
- * 可继续追加 ModelScope 镜像或用户自定义源。
- */
-const MODEL_SOURCES = [
-  'https://hf-mirror.com/ggerganov/whisper.cpp/resolve/main',
-  'https://huggingface.co/ggerganov/whisper.cpp/resolve/main'
-]
+/** 当前进行中的 whisper-stream 进程（同一时刻只允许一个） */
+let streamProcess: ChildProcess | null = null
 
 /**
  * 集成 whisper.cpp（与内置 FFmpeg 同一模式）：
@@ -34,18 +31,25 @@ const MODEL_SOURCES = [
  */
 
 const WHISPER_BINARY_NAME = process.platform === 'win32' ? 'whisper-cli.exe' : 'whisper-cli'
+const WHISPER_STREAM_BINARY_NAME =
+  process.platform === 'win32' ? 'whisper-stream.exe' : 'whisper-stream'
 
-/**
- * UI 输出格式 -> whisper-cli 输出参数。
- * 注意：JSON 是 -oj（--output-json），不存在 -ojson 参数。
- */
-const OUTPUT_FLAG: Record<WhisperModelOutputExtension, string> = {
-  txt: '-otxt',
-  srt: '-osrt',
-  vtt: '-ovtt',
-  lrc: '-olrc',
-  csv: '-ocsv',
-  json: '-oj'
+/** 提取 whisper 进度行 `whisper_print_progress_callback: progress = NN%` 中的百分比 */
+const PROGRESS_RE = /progress\s*=\s*(\d+)%/
+/** 剥离 whisper-stream 用于原地刷新的 ANSI 控制序列（\33[2K 等） */
+// eslint-disable-next-line no-control-regex
+const ANSI_RE = /\x1b\[[0-9;]*[A-Za-z]/g
+/** VAD 模式下每段转写形如 `[00:00:03.000 --> 00:00:05.000]  文本`，此正则剥离开头的时间戳 `[...]` */
+const TIMESTAMP_RE = /^\[[^\]]*\]\s*/
+
+/** 模型存放目录（默认缓存于用户数据目录，运行时按需下载） */
+export function getWhisperModelDir(): string {
+  return join(app.getPath('userData'), 'models', 'whisper')
+}
+
+/** 指定模型的 GGML 文件绝对路径 */
+export function getWhisperModelPath(model: WhisperModelType): string {
+  return join(getWhisperModelDir(), WHISPER_MODEL_NAME[model.toUpperCase()])
 }
 
 /**
@@ -61,19 +65,11 @@ export function getWhisperBinaryPath(): string {
   return app.isPackaged ? binaryPath.replace('app.asar', 'app.asar.unpacked') : binaryPath
 }
 
-/** 模型存放目录（默认缓存于用户数据目录，运行时按需下载） */
-export function getWhisperModelDir(): string {
-  return join(app.getPath('userData'), 'models', 'whisper')
-}
-
-/** 指定模型的 GGML 文件绝对路径 */
-export function getWhisperModelPath(model: WhisperModelType): string {
-  return join(getWhisperModelDir(), WHISPER_MODEL_NAME[model])
-}
-
-/** 指定模型在某个源下的完整下载地址 */
-function getSourceUrl(baseUrl: string, model: WhisperModelType): string {
-  return `${baseUrl}/${WHISPER_MODEL_NAME[model]}`
+/** 解析 whisper-stream 二进制路径（与 whisper-cli 同一目录，WHISPER_STREAM_PATH 优先） */
+function getWhisperStreamBinaryPath(): string {
+  if (process.env.WHISPER_STREAM_PATH) return process.env.WHISPER_STREAM_PATH
+  const binaryPath = join(app.getAppPath(), 'resources', 'whisper', WHISPER_STREAM_BINARY_NAME)
+  return app.isPackaged ? binaryPath.replace('app.asar', 'app.asar.unpacked') : binaryPath
 }
 
 /**
@@ -86,7 +82,9 @@ async function downloadFrom(
   tmpPath: string,
   onProgress?: (progress: WhisperDownloadProgress) => void
 ): Promise<void> {
-  const res = await fetch(getSourceUrl(baseUrl, model), { redirect: 'follow' })
+  const res = await fetch(`${baseUrl}/${WHISPER_MODEL_NAME[model.toUpperCase()]}`, {
+    redirect: 'follow'
+  })
 
   if (!res.ok || !res.body) {
     throw new Error(`HTTP ${res.status}`)
@@ -151,10 +149,10 @@ export async function downloadModel(
   const dir = getWhisperModelDir()
   await mkdir(dir, { recursive: true })
 
-  const tmpPath = join(dir, `${WHISPER_MODEL_NAME[model]}.part`)
+  const tmpPath = join(dir, `${WHISPER_MODEL_NAME[model.toUpperCase()]}.part`)
   const errors: string[] = []
 
-  for (const baseUrl of MODEL_SOURCES) {
+  for (const baseUrl of WHISPER_MODEL_SOURCES) {
     try {
       await downloadFrom(model, baseUrl, tmpPath, onProgress)
       await rename(tmpPath, modelPath)
@@ -169,7 +167,7 @@ export async function downloadModel(
 }
 
 /** 构建 whisper-cli 参数 */
-function buildArgs(options: WhisperOptions, wavPath: string): string[] {
+function buildArgs(options: AudioRecognizeOptions, wavPath: string): string[] {
   const args = [
     '-f',
     wavPath,
@@ -179,7 +177,7 @@ function buildArgs(options: WhisperOptions, wavPath: string): string[] {
     options.language,
     '-of',
     options.outputFileWithoutExt,
-    OUTPUT_FLAG[options.outputExtension],
+    WHISPER_CLI_OUTPUT_FLAG[options.outputExtension.toUpperCase()],
     '-pp'
   ]
   if (options.translate) args.push('-tr')
@@ -222,20 +220,17 @@ function convertToWav(inputAudio: string, id?: number): Promise<string> {
   })
 }
 
-/** 提取 whisper 进度行 `whisper_print_progress_callback: progress = NN%` 中的百分比 */
-const PROGRESS_RE = /progress\s*=\s*(\d+)%/
-
 /**
  * 启动 whisper-cli 并等待结束；whisper 的进度与错误都输出在 stderr。
  * 对 stderr 做增量解析：按 \r / \n 切分，实时提取进度回调；
  * 同时仅保留末尾若干行用于失败时报错，不累积整个 stderr。
  */
-function runWhisperCli(
+const runWhisperCli = (
   binary: string,
   args: string[],
   onProgress?: (progress: number) => void,
   id?: number
-): Promise<void> {
+): Promise<void> => {
   return new Promise<void>((resolve, reject) => {
     const child = spawn(binary, args, { windowsHide: true })
     if (id) setInstanceList(id, child)
@@ -283,34 +278,13 @@ function runWhisperCli(
   })
 }
 
-/** 完整识别流程：校验 -> FFmpeg 转码 -> whisper-cli 推理 -> 清理临时文件 */
-async function runWhisper(
-  options: WhisperOptions,
-  id?: number,
-  onProgress?: (progress: number) => void
-): Promise<void> {
-  const binary = getWhisperBinaryPath()
-  const model = getWhisperModelPath(options.model)
-
-  if (!existsSync(binary)) {
-    throw new Error(`whisper.cpp 二进制未找到：${binary}`)
-  }
-  if (!existsSync(model)) {
-    throw new Error(`识别模型尚未下载：${model}`)
-  }
-
-  const wavPath = await convertToWav(options.inputAudio, id)
-  try {
-    await runWhisperCli(binary, buildArgs(options, wavPath), onProgress, id)
-  } catch (err) {
-    // 中途停止时清理半成品输出文件（whisper 逐段写出 txt/srt 等）
-    if (err instanceof Error && err.message.includes(SINGAL.SIGKILL)) {
-      await rm(`${options.outputFileWithoutExt}.${options.outputExtension}`, { force: true })
-    }
-    throw err
-  } finally {
-    await rm(wavPath, { force: true })
-  }
+/** 构建 whisper-stream 参数（实时麦克风流式识别） */
+function buildStreamArgs(options: StartRecognizeOptions): string[] {
+  const args = ['-m', getWhisperModelPath(options.model), '-l', options.language ?? 'auto']
+  args.push('--step', '0')
+  args.push('--length', '30000')
+  args.push('-vth', '0.6')
+  return args
 }
 
 ipcMain.handle('whisper:checkModel', (_, model: WhisperModelType): boolean => {
@@ -324,12 +298,90 @@ ipcMain.handle('whisper:downloadModel', (event, model: WhisperModelType): Promis
   })
 })
 
-ipcMain.handle('whisper:transcribe', (_, options: WhisperOptions, id?: number): Promise<void> => {
-  return runWhisper(options, id, (progress) => {
-    if (id) setWorkList(id, { progress })
-  })
-})
+ipcMain.handle(
+  'whisper:audioRecognize',
+  async (_, options: AudioRecognizeOptions, id?: number): Promise<void> => {
+    const binary = getWhisperBinaryPath()
+    const model = getWhisperModelPath(options.model)
+
+    if (!existsSync(binary)) throw new Error(`whisper.cpp 二进制未找到：${binary}`)
+    if (!existsSync(model)) throw new Error(`识别模型尚未下载：${model}`)
+
+    const wavPath = await convertToWav(options.inputAudio, id)
+    await runWhisperCli(
+      binary,
+      buildArgs(options, wavPath),
+      (progress) => {
+        if (id) setWorkList(id, { progress })
+      },
+      id
+    )
+      .catch(async (err) => {
+        // 中途停止时清理半成品输出文件（whisper 逐段写出 txt/srt 等）
+        if (err instanceof Error && err.message.includes(SINGAL.SIGKILL))
+          await rm(`${options.outputFileWithoutExt}.${options.outputExtension}`, { force: true })
+        throw err
+      })
+      .finally(async () => {
+        await rm(wavPath, { force: true })
+      })
+  }
+)
 
 ipcMain.handle('whisper:getWhisperModelDir', () => {
   return getWhisperModelDir()
+})
+
+ipcMain.handle('whisper:startRecognize', (event, options: StartRecognizeOptions): Promise<void> => {
+  const binary = getWhisperStreamBinaryPath()
+  const model = getWhisperModelPath(options.model)
+
+  if (!existsSync(binary))
+    return Promise.reject(new Error(`whisper-stream 二进制未找到：${binary}`))
+  if (!existsSync(model)) return Promise.reject(new Error(`识别模型尚未下载：${model}`))
+  if (streamProcess) return Promise.reject(new Error('已有进行中的实时识别'))
+
+  return new Promise<void>((resolve, reject) => {
+    const child = spawn(binary, buildStreamArgs(options), { windowsHide: true })
+
+    let pending = ''
+
+    child.stdout.on('data', (chunk: Buffer) => {
+      pending += chunk.toString()
+      // VAD 模式输出：`[Start speaking]`、`### Transcription N START/END` 标记行，
+      // 以及形如 `[00:00:03.000 --> 00:00:05.000]  文本` 的转写行。
+      // 按 \r / \n 切分后跳过标记行、剥离时间戳，只转发文本；
+      // 只保留末尾未结束的残段，避免长时间识别时 pending 无限增长。
+      pending = pending.replace(ANSI_RE, '')
+      const segments = pending.split(/[\r\n]/)
+      pending = segments.pop() ?? ''
+
+      for (const segment of segments) {
+        const raw = segment.trim()
+        if (!raw || raw === '[Start speaking]' || raw.startsWith('###')) continue
+        const text = raw.replace(TIMESTAMP_RE, '').trim()
+        if (text) event.sender.send('whisper:recognizeText', text)
+      }
+    })
+
+    // whisper-stream 的模型加载日志走 stderr，仅需消费以免阻塞子进程
+    child.stderr.on('data', () => {})
+
+    child.once('error', (err) => {
+      streamProcess = null
+      reject(err)
+    })
+    child.once('spawn', () => {
+      streamProcess = child
+      resolve()
+    })
+    child.once('close', () => {
+      if (streamProcess === child) streamProcess = null
+    })
+  })
+})
+
+ipcMain.handle('whisper:stopRecognize', () => {
+  streamProcess?.kill('SIGKILL')
+  streamProcess = null
 })

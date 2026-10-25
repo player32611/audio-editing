@@ -1,9 +1,10 @@
 import { App } from 'antd'
-import { useCallback } from 'react'
+import { useCallback, useRef } from 'react'
 import type {
   AudioFileExtension,
   AudioTag,
   Language,
+  StartRecognizeOptions,
   WhisperModelType,
   WhisperModelOutputExtension
 } from '../../../shared/type'
@@ -11,14 +12,17 @@ import { KEY } from '@renderer/utils'
 import { SINGAL, WHISPER_MODEL_NAME } from '../../../shared/constants'
 
 interface useToolsData {
-  getVoice: (params: getVoiceParams) => Promise<void>
+  getVoice: (params: GetVoiceParams) => Promise<void>
   cutAudio: (params: CutAudioParams) => Promise<void>
   setAudioTags: (params: SetAudioTagsParams) => Promise<void>
-  speechRecognize: (params: speechRecognizeParams) => Promise<void>
-  importModel: (params: importModelParams) => Promise<void>
+  speechRecognize: (params: SpeechRecognizeParams) => Promise<void>
+  importModel: (params: ImportModelParams) => Promise<void>
+  startRecognize: (params: StartRecognizeParams) => Promise<void>
+  stopRecognize: () => Promise<void>
+  saveContent: (params: SaveContentParams) => Promise<void>
 }
 
-interface getVoiceParams {
+interface GetVoiceParams {
   inputVideo: string
   outputAudio: string
   audioExtension: AudioFileExtension
@@ -44,7 +48,7 @@ interface SetAudioTagsParams extends AudioTag {
   coverPath?: string
 }
 
-interface speechRecognizeParams {
+interface SpeechRecognizeParams {
   inputAudio: string
   outputFileWithoutExt: string
   outputExtension: WhisperModelOutputExtension
@@ -54,16 +58,30 @@ interface speechRecognizeParams {
   translate: boolean
 }
 
-interface importModelParams {
+interface ImportModelParams {
   inputFile: string
   modelType: WhisperModelType
 }
 
+interface StartRecognizeParams extends StartRecognizeOptions {
+  onRecognize?: (data: string) => void
+}
+
+interface SaveContentParams {
+  outputFile: string
+  content: string
+}
+
 export function useTools(): useToolsData {
+  const unsubscribeRecognizeRef = useRef<(() => void) | null>(null)
   const { message, notification, modal } = App.useApp()
 
   const checkPath = useCallback(
-    async (inputFile: string, outputFile?: string, coverFile?: string): Promise<boolean> => {
+    async (
+      inputFile?: string | null,
+      outputFile?: string | null,
+      coverFile?: string | null
+    ): Promise<boolean> => {
       const openMessage = (msg: string): void => {
         message.open({
           key: KEY.MESSAGE,
@@ -73,10 +91,12 @@ export function useTools(): useToolsData {
         })
       }
 
-      const isExistInput = await window.api.existsSync(inputFile)
-      if (!isExistInput) {
-        openMessage('输入文件不存在，请检查后重试')
-        return false
+      if (inputFile) {
+        const isExistInput = await window.api.existsSync(inputFile)
+        if (!isExistInput) {
+          openMessage('输入文件不存在，请检查后重试')
+          return false
+        }
       }
 
       if (outputFile) {
@@ -203,7 +223,7 @@ export function useTools(): useToolsData {
   )
 
   const getVoice = useCallback(
-    async (params: getVoiceParams) => {
+    async (params: GetVoiceParams) => {
       const checked = await checkPath(params.inputVideo, params.outputAudio)
       if (!checked) throw new Error('路径有误')
 
@@ -263,7 +283,7 @@ export function useTools(): useToolsData {
   const setAudioTags = useCallback(
     async (params: SetAudioTagsParams) => {
       const checked = await checkPath(params.inputAudio, params.outputAudio, params.coverPath)
-      if (!checked) throw new Error()
+      if (!checked) throw new Error('路径有误')
 
       const outputInfo = await window.api.parseFilePath(params.outputAudio)
       const type = await window.database.selectType('音频编辑')
@@ -290,7 +310,7 @@ export function useTools(): useToolsData {
   )
 
   const speechRecognize = useCallback(
-    async (params: speechRecognizeParams) => {
+    async (params: SpeechRecognizeParams) => {
       let checked = await checkPath(
         params.inputAudio,
         `${params.outputFileWithoutExt}.${params.outputExtension}`
@@ -313,7 +333,7 @@ export function useTools(): useToolsData {
 
       await onBegin(id)
       window.whisper
-        .transcribe(params, id)
+        .audioRecognize(params, id)
         .then(() => {
           onSuccess(id, outputInfo.fullName)
         })
@@ -325,12 +345,15 @@ export function useTools(): useToolsData {
   )
 
   const importModel = useCallback(
-    async (params: importModelParams) => {
+    async (params: ImportModelParams) => {
       const checked = await checkPath(params.inputFile)
       if (!checked) throw new Error('路径有误')
 
       const modelDir = await window.whisper.getWhisperModelDir()
-      const modelPath = await window.api.joinPath(modelDir, WHISPER_MODEL_NAME[params.modelType])
+      const modelPath = await window.api.joinPath(
+        modelDir,
+        WHISPER_MODEL_NAME[params.modelType.toUpperCase()]
+      )
 
       const isExisted = await window.whisper.checkModel(params.modelType)
       if (isExisted) {
@@ -348,12 +371,65 @@ export function useTools(): useToolsData {
           message.success('导入成功')
         })
         .catch((err) => {
-          console.log(err)
           message.error(`导入失败: ${err}`)
         })
     },
     [message, modal, checkPath]
   )
 
-  return { getVoice, cutAudio, setAudioTags, speechRecognize, importModel }
+  const startRecognize = useCallback(
+    async ({ onRecognize, ...options }: StartRecognizeParams) => {
+      const checked = await downloadModel(options.model)
+      if (!checked) throw new Error('模型未下载')
+
+      if (onRecognize) unsubscribeRecognizeRef.current = window.whisper.onRecognize(onRecognize)
+
+      await window.whisper.startRecognize(options)
+    },
+    [downloadModel]
+  )
+
+  const stopRecognize = useCallback(async () => {
+    await window.whisper.stopRecognize()
+  }, [])
+
+  const saveContent = useCallback(
+    async (params: SaveContentParams) => {
+      const checked = await checkPath(null, params.outputFile)
+      if (!checked) throw new Error('路径有误')
+
+      const outputInfo = await window.api.parseFilePath(params.outputFile)
+      const type = await window.database.selectType('实时识别')
+      const workStatus = await window.database.selectStatus('处理中')
+      const id = await window.database.insertWorkHistory({
+        name: outputInfo.fullName,
+        time: new Date().toISOString(),
+        path: outputInfo.dir,
+        typeId: type,
+        statusId: workStatus
+      })
+
+      await onBegin(id)
+      window.api
+        .writeFile(params.outputFile, params.content, id)
+        .then(() => {
+          onSuccess(id, outputInfo.fullName)
+        })
+        .catch((err: Error) => {
+          onError(id, err)
+        })
+    },
+    [checkPath, onBegin, onSuccess, onError]
+  )
+
+  return {
+    getVoice,
+    cutAudio,
+    setAudioTags,
+    speechRecognize,
+    importModel,
+    startRecognize,
+    stopRecognize,
+    saveContent
+  }
 }

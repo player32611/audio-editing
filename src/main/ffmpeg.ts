@@ -134,11 +134,9 @@ ipcMain.handle('ffmpeg:getAudioCover', (_, path: string) => {
     stream.on('data', (chunk) => {
       chunks.push(Buffer.from(chunk))
     })
-
     stream.on('end', () => {
       resolve(Buffer.concat(chunks))
     })
-
     stream.on('error', reject)
 
     command.on('error', reject)

@@ -10,13 +10,13 @@ import {
   type TableProps
 } from 'antd'
 import {
+  AudioOutlined,
   ExportOutlined,
   DeleteOutlined,
   EditOutlined,
   FontColorsOutlined,
   PlusOutlined,
   ScissorOutlined,
-  TranslationOutlined,
   ImportOutlined
 } from '@ant-design/icons'
 import dayjs from 'dayjs'
@@ -142,14 +142,6 @@ export default function List(): ReactNode {
     setIsGroupOpen(!isGroupOpen)
   }, [isGroupOpen])
 
-  const onNavigate = useCallback(() => {
-    message.open({
-      key: KEY.MESSAGE,
-      type: 'info',
-      content: '功能建设中'
-    })
-  }, [message])
-
   useEffect(() => {
     onRefresh().then(() => {
       setTimeout(() => {
@@ -270,13 +262,18 @@ export default function List(): ReactNode {
         />
       </Space>
 
-      <FloatButton.Group icon={<PlusOutlined />} type="primary" trigger="click" open={isGroupOpen}>
+      <FloatButton.Group
+        icon={<PlusOutlined />}
+        type="primary"
+        trigger="click"
+        placement="left"
+        open={isGroupOpen}
+      >
         <FloatButton
           icon={<EditOutlined />}
           tooltip={{
             title: '音频编辑',
-            color: 'blue',
-            placement: 'left'
+            color: 'blue'
           }}
           onClick={() => navigate('/workspace/audioEdit')}
         />
@@ -284,17 +281,15 @@ export default function List(): ReactNode {
           icon={<ExportOutlined />}
           tooltip={{
             title: '音频提取',
-            color: 'blue',
-            placement: 'left'
+            color: 'blue'
           }}
-          onClick={() => navigate('/workspace/extract')}
+          onClick={() => navigate('/workspace/audioExtract')}
         />
         <FloatButton
           icon={<ScissorOutlined />}
           tooltip={{
             title: '音频裁剪',
-            color: 'blue',
-            placement: 'left'
+            color: 'blue'
           }}
           onClick={() => navigate('/workspace/audioTrim')}
         />
@@ -302,19 +297,17 @@ export default function List(): ReactNode {
           icon={<FontColorsOutlined />}
           tooltip={{
             title: '语音识别',
-            color: 'blue',
-            placement: 'left'
+            color: 'blue'
           }}
           onClick={() => navigate('/workspace/speechRecognition')}
         />
         <FloatButton
-          icon={<TranslationOutlined />}
+          icon={<AudioOutlined />}
           tooltip={{
-            title: '汉英转译',
-            color: 'blue',
-            placement: 'left'
+            title: '实时识别',
+            color: 'blue'
           }}
-          onClick={() => onNavigate()}
+          onClick={() => navigate('realtimeRecognition')}
         />
       </FloatButton.Group>
 
@@ -322,7 +315,7 @@ export default function List(): ReactNode {
         icon={<PlusOutlined />}
         type="primary"
         trigger="click"
-        placement="left"
+        placement="top"
         open={isGroupOpen}
         onClick={onTriggerGroup}
       >

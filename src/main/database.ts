@@ -77,6 +77,10 @@ const createTable = (): void => {
     SELECT '语音识别'
     WHERE NOT EXISTS (SELECT 1 FROM type WHERE name = '语音识别');
 
+    INSERT INTO type (name)
+    SELECT '实时识别'
+    WHERE NOT EXISTS (SELECT 1 FROM type WHERE name = '实时识别');
+
 
     INSERT INTO status (name)
     SELECT '待处理'

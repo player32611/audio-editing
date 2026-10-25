@@ -95,7 +95,7 @@ export default function SpeechRecognition(): ReactNode {
   const onFinish: FormProps<FieldType>['onFinish'] = useCallback(
     async ({ outputPath, outputName, ...params }: FieldType) => {
       setIsLoading(true)
-      speechRecognize({
+      await speechRecognize({
         outputFileWithoutExt: `${outputPath}\\${outputName}`,
         ...params
       })
