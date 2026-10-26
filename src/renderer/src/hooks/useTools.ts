@@ -400,6 +400,7 @@ export function useTools(): useToolsData {
   )
 
   const stopRecognize = useCallback(async () => {
+    unsubscribeRecognizeRef.current?.()
     await window.whisper.stopRecognize().catch((err) => {
       onError(null, err)
     })

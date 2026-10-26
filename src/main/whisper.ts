@@ -18,7 +18,10 @@ import {
   SINGAL,
   WHISPER_MODEL_NAME,
   WHISPER_CLI_OUTPUT_FLAG,
-  AUDIO_CODEC
+  AUDIO_CODEC,
+  WHSIPER_STREAM_MODE,
+  REGEX,
+  WHISPER_STREAM_BLOCK_WORD
 } from '../shared/constants'
 import { cutAudio } from './ffmpeg'
 
@@ -31,7 +34,6 @@ let streamProcess: ChildProcess | null = null
  *   process.resourcesPath/whisper/），开发环境用 WHISPER_PATH 环境变量指定。
  * - 模型（GGML）：运行时按需下载，缓存到 userData/models/whisper/，此处不负责下载。
  */
-
 const WHISPER_BINARY_NAME = process.platform === 'win32' ? 'whisper-cli.exe' : 'whisper-cli'
 const WHISPER_STREAM_BINARY_NAME =
   process.platform === 'win32' ? 'whisper-stream.exe' : 'whisper-stream'
@@ -41,8 +43,6 @@ const PROGRESS_RE = /progress\s*=\s*(\d+)%/
 /** 剥离 whisper-stream 用于原地刷新的 ANSI 控制序列（\33[2K 等） */
 // eslint-disable-next-line no-control-regex
 const ANSI_RE = /\x1b\[[0-9;]*[A-Za-z]/g
-/** VAD 模式下每段转写形如 `[00:00:03.000 --> 00:00:05.000]  文本`，此正则剥离开头的时间戳 `[...]` */
-const TIMESTAMP_RE = /^\[[^\]]*\]\s*/
 
 /** 模型存放目录（默认缓存于用户数据目录，运行时按需下载） */
 export function getWhisperModelDir(): string {
@@ -169,13 +169,13 @@ export async function downloadModel(
 }
 
 /** 构建 whisper-cli 参数 */
-function buildArgs(options: AudioRecognizeOptions, wavPath: string): string[] {
+const buildArgs = (options: AudioRecognizeOptions, wavPath: string): string[] => {
   const args = [
-    '-f',
+    '--file',
     wavPath,
-    '-m',
+    '--model',
     getWhisperModelPath(options.model),
-    '-l',
+    '--language',
     options.language,
     '-of',
     options.outputFileWithoutExt,
@@ -184,6 +184,27 @@ function buildArgs(options: AudioRecognizeOptions, wavPath: string): string[] {
   ]
   if (options.translate) args.push('-tr')
   if (options.prompt) args.push('--prompt', options.prompt)
+  return args
+}
+
+/** 构建 whisper-stream 参数（实时麦克风流式识别） */
+const buildStreamArgs = (options: StartRecognizeOptions): string[] => {
+  const args = [
+    '--model',
+    getWhisperModelPath(options.model),
+    '--language',
+    options.language ?? 'auto'
+  ]
+
+  if (options.recognizeMode === WHSIPER_STREAM_MODE.VAD) {
+    args.push('--step', '0')
+    args.push('--length', '30000')
+  } else if (options.recognizeMode === WHSIPER_STREAM_MODE.CONTINUOUS) {
+    args.push('--step', '500')
+    args.push('--length', '5000')
+  }
+  args.push('--threads', '8')
+  args.push('-vth', '0.6')
   return args
 }
 
@@ -243,15 +264,6 @@ const runWhisperCli = (
       }
     })
   })
-}
-
-/** 构建 whisper-stream 参数（实时麦克风流式识别） */
-function buildStreamArgs(options: StartRecognizeOptions): string[] {
-  const args = ['-m', getWhisperModelPath(options.model), '-l', options.language ?? 'auto']
-  args.push('--step', '0')
-  args.push('--length', '30000')
-  args.push('-vth', '0.6')
-  return args
 }
 
 ipcMain.handle('whisper:checkModel', (_, model: WhisperModelType): boolean => {
@@ -318,28 +330,27 @@ ipcMain.handle('whisper:startRecognize', (event, options: StartRecognizeOptions)
   return new Promise<void>((resolve, reject) => {
     const child = spawn(binary, buildStreamArgs(options), { windowsHide: true })
 
-    let pending = ''
+    child.stdout.setEncoding('utf8')
+    child.stderr.setEncoding('utf8')
 
     child.stdout.on('data', (chunk: Buffer) => {
-      pending += chunk.toString()
-      // VAD 模式输出：`[Start speaking]`、`### Transcription N START/END` 标记行，
-      // 以及形如 `[00:00:03.000 --> 00:00:05.000]  文本` 的转写行。
-      // 按 \r / \n 切分后跳过标记行、剥离时间戳，只转发文本；
-      // 只保留末尾未结束的残段，避免长时间识别时 pending 无限增长。
-      pending = pending.replace(ANSI_RE, '')
-      const segments = pending.split(/[\r\n]/)
-      pending = segments.pop() ?? ''
+      const text = chunk.toString().replace(ANSI_RE, '')
 
-      for (const segment of segments) {
-        const raw = segment.trim()
-        if (!raw || raw === '[Start speaking]' || raw.startsWith('###')) continue
-        const text = raw.replace(TIMESTAMP_RE, '').trim()
-        if (text) event.sender.send('whisper:recognizeText', text)
+      if (options.recognizeMode === WHSIPER_STREAM_MODE.CONTINUOUS) {
+        if (!text.trim() || text.trim() === '[Start speaking]') return
+        event.sender.send('whisper:recognizeText', text)
+      } else if (options.recognizeMode === WHSIPER_STREAM_MODE.VAD) {
+        const lines = text.split(REGEX.CRLF)
+        lines.forEach((line) => {
+          if (!line.trim() || line.startsWith('###')) return
+
+          const content = line.replace(/^\[[^\]]*\]\s*/, '')
+          if (!content || WHISPER_STREAM_BLOCK_WORD.includes(content)) return
+
+          event.sender.send('whisper:recognizeText', content)
+        })
       }
     })
-
-    // whisper-stream 的模型加载日志走 stderr，仅需消费以免阻塞子进程
-    child.stderr.on('data', () => {})
 
     child.once('error', (err) => {
       streamProcess = null

@@ -12,13 +12,19 @@ import {
   Input,
   Radio,
   Flex,
-  Card
+  Card,
+  type InputRef
 } from 'antd'
 import { LeftOutlined, FolderOpenOutlined, ExclamationCircleOutlined } from '@ant-design/icons'
-import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router'
-import { Language, WhisperModelType } from '../../../../shared/type'
-import { LANGUAGE, WHISPER_MODEL_TYPE } from '../../../../shared/constants'
+import { Language, WhisperModelType, WhisperStreamMode } from '../../../../shared/type'
+import {
+  LANGUAGE,
+  REGEX,
+  WHISPER_MODEL_TYPE,
+  WHSIPER_STREAM_MODE
+} from '../../../../shared/constants'
 import { formatLanguage } from '@renderer/utils'
 import { useTools } from '@renderer/hooks'
 import { RealtimeWave } from '@renderer/components/common/RealtimeWave'
@@ -33,13 +39,18 @@ interface FieldType {
   outputName: string
   language: Language
   model: WhisperModelType
+  recognizeMode: WhisperStreamMode
 }
 
 export default function RealtimeRecognition(): ReactNode {
   const [isRecording, setIsRecording] = useState<boolean>(false)
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [isSelecting, setIsSelecting] = useState<boolean>(false)
+
   const [form] = Form.useForm<FieldType>()
+  const content = Form.useWatch('recognizeContent', form)
+
+  const textareaRef = useRef<InputRef | null>(null)
 
   const navigate = useNavigate()
   const { startRecognize, stopRecognize, saveContent } = useTools()
@@ -63,15 +74,29 @@ export default function RealtimeRecognition(): ReactNode {
     setIsLoading(false)
   }, [form])
 
-  const onRecognize = useCallback(async () => {
+  const onToggleRecognize = useCallback(async () => {
     setIsLoading(true)
     if (!isRecording) {
+      const params = form.getFieldsValue()
       await startRecognize({
-        model: form.getFieldValue('model'),
-        language: form.getFieldValue('language'),
+        model: params.model,
+        language: params.language,
+        recognizeMode: params.recognizeMode,
         onRecognize: (text) => {
-          const cur = form.getFieldValue('recognizeContent')
-          form.setFieldValue('recognizeContent', cur + '\n' + text)
+          if (params.recognizeMode === WHSIPER_STREAM_MODE.CONTINUOUS) {
+            const content: string = form.getFieldValue('recognizeContent')
+            const curArray = content ? content.split(REGEX.LF) : ['']
+            const newline = text.trim()
+            if (REGEX.LF.test(text)) {
+              curArray.pop()
+              curArray.push(newline, '')
+            } else curArray[curArray.length - 1] = newline
+
+            form.setFieldValue('recognizeContent', curArray.join(`\n`))
+          } else if (params.recognizeMode === WHSIPER_STREAM_MODE.VAD) {
+            const content: string = form.getFieldValue('recognizeContent') ?? ''
+            form.setFieldValue('recognizeContent', content + '\n' + text)
+          }
         }
       })
         .then(() => {
@@ -113,6 +138,13 @@ export default function RealtimeRecognition(): ReactNode {
     })
   }, [form])
 
+  useEffect(() => {
+    const textarea = textareaRef.current?.nativeElement
+    if (!textarea || textarea === document.activeElement) return
+
+    textarea.scrollTop = textarea.scrollHeight
+  }, [content])
+
   return (
     <>
       <Row align="middle">
@@ -151,10 +183,10 @@ export default function RealtimeRecognition(): ReactNode {
           <TextArea
             autoSize={{
               minRows: 1,
-              maxRows: 5
+              maxRows: 6
             }}
             style={{ resize: 'none' }}
-            allowClear
+            ref={textareaRef}
             readOnly
           />
         </Form.Item>
@@ -207,12 +239,22 @@ export default function RealtimeRecognition(): ReactNode {
           </Radio.Group>
         </Form.Item>
 
+        <Form.Item<FieldType> name="recognizeMode" label="识别模式" initialValue="连续识别">
+          <Radio.Group disabled={isRecording}>
+            {Object.values(WHSIPER_STREAM_MODE).map((val) => (
+              <Radio.Button value={val} key={val}>
+                {val}
+              </Radio.Button>
+            ))}
+          </Radio.Group>
+        </Form.Item>
+
         <Form.Item wrapperCol={{ span: 24 }}>
           <Flex justify="center" align="center" gap={10}>
             <Button htmlType="button" onClick={onReset} disabled={isRecording}>
               重置
             </Button>
-            <Button type="primary" htmlType="button" onClick={onRecognize}>
+            <Button type="primary" htmlType="button" onClick={onToggleRecognize}>
               {isRecording ? '暂停识别' : '开始识别'}
             </Button>
             <Button type="primary" htmlType="submit" disabled={isRecording}>

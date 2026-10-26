@@ -90,6 +90,11 @@ export const WHISPER_CLI_OUTPUT_FLAG = {
   JSON: '-oj'
 }
 
+export const WHSIPER_STREAM_MODE = {
+  CONTINUOUS: '连续识别',
+  VAD: '滑动窗口'
+} as const
+
 export const WHISPER_MODEL_EXTENSION = {
   BIN: 'bin'
 } as const
@@ -103,6 +108,18 @@ export const WHISPER_MODEL_OUTPUT_EXTENSION = {
   JSON: 'json'
 } as const
 
+export const WHISPER_STREAM_BLOCK_WORD: string[] = [
+  '请不吝点赞 订阅 转发 打赏支持明镜与点点栏目',
+  '[Start speaking]'
+] as const
+
 export const SINGAL = {
   SIGKILL: 'SIGKILL'
+} as const
+
+export const REGEX = {
+  LF: /\n/g,
+  CR: /\r/g,
+  CRLF: /[\r\n]/g,
+  EMPTY: /[\s\u3000]+/g
 } as const

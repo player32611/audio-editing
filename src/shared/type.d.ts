@@ -5,7 +5,8 @@ import {
   VIDEO_FILE_EXTENSION,
   WHISPER_MODEL_TYPE,
   WHISPER_MODEL_OUTPUT_EXTENSION,
-  AUDIO_CODEC
+  AUDIO_CODEC,
+  WHSIPER_STREAM_MODE
 } from './constants'
 
 export type Theme = 'dark' | 'light' | 'system'
@@ -27,11 +28,13 @@ export type WhisperModelType = (typeof WHISPER_MODEL_TYPE)[keyof typeof WHISPER_
 export type WhisperModelOutputExtension =
   (typeof WHISPER_MODEL_OUTPUT_EXTENSION)[keyof typeof WHISPER_MODEL_OUTPUT_EXTENSION]
 
+export type WhisperStreamMode = (typeof WHSIPER_STREAM_MODE)[keyof typeof WHSIPER_STREAM_MODE]
+
 export type Database = 'status' | 'type' | 'work_history'
 
 export type WorkStatus = '待处理' | '处理中' | '已完成' | '已中断'
 
-export type WorkType = '音频编辑' | '音频提取' | '音频裁剪' | '汉英转译' | '语音识别' | '实时识别'
+export type WorkType = '音频编辑' | '音频提取' | '音频裁剪' | '语音识别' | '实时识别'
 
 export interface FileInfo {
   name: string
@@ -134,5 +137,6 @@ export interface WhisperDownloadProgress {
 
 export interface StartRecognizeOptions {
   model: WhisperModelType
-  language?: Language
+  language: Language
+  recognizeMode: WhisperStreamMode
 }

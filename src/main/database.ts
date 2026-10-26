@@ -66,10 +66,6 @@ const createTable = (): void => {
     WHERE NOT EXISTS (SELECT 1 FROM type WHERE name = '音频裁剪');
 
     INSERT INTO type (name)
-    SELECT '汉英转译'
-    WHERE NOT EXISTS (SELECT 1 FROM type WHERE name = '汉英转译');
-
-    INSERT INTO type (name)
     SELECT '音频编辑'
     WHERE NOT EXISTS (SELECT 1 FROM type WHERE name = '音频编辑');
 
