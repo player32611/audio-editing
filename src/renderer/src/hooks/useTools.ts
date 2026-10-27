@@ -9,7 +9,13 @@ import type {
   WhisperModelOutputExtension
 } from '../../../shared/type'
 import { KEY } from '@renderer/utils'
-import { SINGAL, WHISPER_MODEL_NAME } from '../../../shared/constants'
+import {
+  AUDIO_FILE_EXTENSION,
+  SINGAL,
+  VIDEO_FILE_EXTENSION,
+  WHISPER_MODEL_EXTENSION,
+  WHISPER_MODEL_NAME
+} from '../../../shared/constants'
 
 interface useToolsData {
   getVoice: (params: GetVoiceParams) => Promise<void>
@@ -20,6 +26,13 @@ interface useToolsData {
   startRecognize: (params: StartRecognizeParams) => Promise<void>
   stopRecognize: () => Promise<void>
   saveContent: (params: SaveContentParams) => Promise<void>
+}
+
+interface CheckPathParams {
+  inputFile?: string
+  inputExtension?: string | string[]
+  outputFile?: string
+  coverFile?: string
 }
 
 interface GetVoiceParams {
@@ -78,11 +91,7 @@ export function useTools(): useToolsData {
   const { message, notification, modal } = App.useApp()
 
   const checkPath = useCallback(
-    async (
-      inputFile?: string | null,
-      outputFile?: string | null,
-      coverFile?: string | null
-    ): Promise<boolean> => {
+    async (params: CheckPathParams): Promise<boolean> => {
       const openMessage = (msg: string): void => {
         message.open({
           key: KEY.MESSAGE,
@@ -92,22 +101,35 @@ export function useTools(): useToolsData {
         })
       }
 
-      if (inputFile) {
-        const isExistInput = await window.api.existsSync(inputFile)
+      if (params.inputFile) {
+        const isExistInput = await window.api.existsSync(params.inputFile)
         if (!isExistInput) {
           openMessage('输入文件不存在，请检查后重试')
           return false
         }
+
+        const inputInfo = await window.api.parseFilePath(params.inputFile)
+        if (params.inputExtension && Array.isArray(params.inputExtension)) {
+          if (!params.inputExtension.includes(inputInfo.ext)) {
+            openMessage('文件格式有误，请检查后重试')
+            return false
+          }
+        } else if (params.inputExtension && typeof params.inputExtension === 'string') {
+          if (inputInfo.ext === params.inputExtension) {
+            openMessage('文件格式有误，请检查后重试')
+            return false
+          }
+        }
       }
 
-      if (outputFile) {
-        const isExistOutputFile = await window.api.existsSync(outputFile)
+      if (params.outputFile) {
+        const isExistOutputFile = await window.api.existsSync(params.outputFile)
         if (isExistOutputFile) {
           openMessage('已存在同名文件，请修改后重试')
           return false
         }
 
-        const outputInfo = await window.api.parseFilePath(outputFile)
+        const outputInfo = await window.api.parseFilePath(params.outputFile)
         const isExistOutputPath = await window.api.existsSync(outputInfo.dir)
         if (!isExistOutputPath) {
           openMessage('输出文件夹不存在，请修改后重试')
@@ -115,8 +137,8 @@ export function useTools(): useToolsData {
         }
       }
 
-      if (coverFile) {
-        const isExistOuput = await window.api.existsSync(coverFile)
+      if (params.coverFile) {
+        const isExistOuput = await window.api.existsSync(params.coverFile)
         if (!isExistOuput) {
           openMessage('封面图片不存在，请修改后重试')
           return false
@@ -232,7 +254,11 @@ export function useTools(): useToolsData {
 
   const getVoice = useCallback(
     async (params: GetVoiceParams) => {
-      const checked = await checkPath(params.inputVideo, params.outputAudio)
+      const checked = await checkPath({
+        inputFile: params.inputVideo,
+        inputExtension: Object.values(VIDEO_FILE_EXTENSION),
+        outputFile: params.outputAudio
+      })
       if (!checked) throw new Error('路径有误')
 
       const outputInfo = await window.api.parseFilePath(params.outputAudio)
@@ -261,7 +287,11 @@ export function useTools(): useToolsData {
 
   const cutAudio = useCallback(
     async (params: CutAudioParams) => {
-      const checked = await checkPath(params.inputAudio, params.outputAudio)
+      const checked = await checkPath({
+        inputFile: params.inputAudio,
+        inputExtension: Object.values(AUDIO_FILE_EXTENSION),
+        outputFile: params.outputAudio
+      })
       if (!checked) return
 
       const outputInfo = await window.api.parseFilePath(params.outputAudio)
@@ -290,7 +320,12 @@ export function useTools(): useToolsData {
 
   const setAudioTags = useCallback(
     async (params: SetAudioTagsParams) => {
-      const checked = await checkPath(params.inputAudio, params.outputAudio, params.coverPath)
+      const checked = await checkPath({
+        inputFile: params.inputAudio,
+        inputExtension: Object.values(AUDIO_FILE_EXTENSION),
+        outputFile: params.outputAudio,
+        coverFile: params.coverPath
+      })
       if (!checked) throw new Error('路径有误')
 
       const outputInfo = await window.api.parseFilePath(params.outputAudio)
@@ -319,10 +354,11 @@ export function useTools(): useToolsData {
 
   const speechRecognize = useCallback(
     async (params: SpeechRecognizeParams) => {
-      let checked = await checkPath(
-        params.inputAudio,
-        `${params.outputFileWithoutExt}.${params.outputExtension}`
-      )
+      let checked = await checkPath({
+        inputFile: params.inputAudio,
+        inputExtension: Object.values(AUDIO_FILE_EXTENSION),
+        outputFile: `${params.outputFileWithoutExt}.${params.outputExtension}`
+      })
       if (!checked) throw new Error('路径有误')
 
       checked = await downloadModel(params.model)
@@ -354,7 +390,10 @@ export function useTools(): useToolsData {
 
   const importModel = useCallback(
     async (params: ImportModelParams) => {
-      const checked = await checkPath(params.inputFile)
+      const checked = await checkPath({
+        inputFile: params.inputFile,
+        inputExtension: WHISPER_MODEL_EXTENSION.BIN
+      })
       if (!checked) throw new Error('路径有误')
 
       const modelDir = await window.whisper.getWhisperModelDir()
@@ -408,7 +447,9 @@ export function useTools(): useToolsData {
 
   const saveContent = useCallback(
     async (params: SaveContentParams) => {
-      const checked = await checkPath(null, params.outputFile)
+      const checked = await checkPath({
+        outputFile: params.outputFile
+      })
       if (!checked) throw new Error('路径有误')
 
       const outputInfo = await window.api.parseFilePath(params.outputFile)
