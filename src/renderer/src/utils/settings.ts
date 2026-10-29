@@ -10,6 +10,10 @@ export const getBreadcrumb = (url: string): { title: string }[] => {
       case 'file':
         res.push({ title: '系统' })
         res.push({ title: '文件' })
+        break
+      case 'whisper':
+        res.push({ title: '系统' })
+        res.push({ title: '识别模型' })
     }
   })
   return res

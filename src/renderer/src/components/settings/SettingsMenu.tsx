@@ -15,7 +15,8 @@ const items: Required<MenuProps>['items'][number][] = [
     label: '系统',
     children: [
       { key: '/settings/appearance', label: '外观' },
-      { key: '/settings/file', label: '文件' }
+      { key: '/settings/file', label: '文件' },
+      { key: '/settings/whisper', label: '识别模型' }
     ]
   }
 ]

@@ -69,6 +69,8 @@ const ffmpeg = {
 }
 
 const whisper = {
+  getWhisperModelDir: () => ipcRenderer.invoke('whisper:getWhisperModelDir'),
+  getDownloadModelList: () => ipcRenderer.invoke('whisper:getDownloadModelList'),
   audioRecognize: (options: AudioRecognizeOptions, id?: number) =>
     ipcRenderer.invoke('whisper:audioRecognize', options, id),
   checkModel: (model: WhisperModelType) => ipcRenderer.invoke('whisper:checkModel', model),
@@ -81,7 +83,6 @@ const whisper = {
 
     return () => ipcRenderer.removeListener('whisper:downloadProgress', listener)
   },
-  getWhisperModelDir: () => ipcRenderer.invoke('whisper:getWhisperModelDir'),
   onRecognize: (callback: (text: string) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, text: string): void => callback(text)
     ipcRenderer.on('whisper:recognizeText', listener)

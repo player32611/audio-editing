@@ -12,12 +12,18 @@ import AudioEdit from '@renderer/pages/Workspace/AudioEdit'
 import SpeechRecognition from '@renderer/pages/Workspace/SpeechRecognition'
 import ImportModel from '@renderer/pages/Workspace/ImportModel'
 import RealtimeRecognition from '@renderer/pages/Workspace/RealtimeRecognition'
+import Home from '@renderer/pages/Home'
+import Whisper from '@renderer/pages/Settings/Systems/Whisper'
 
 const router = createHashRouter([
   {
     path: '',
     element: <App />,
     children: [
+      {
+        index: true,
+        element: <Home />
+      },
       {
         path: 'workspace',
         element: <Workspace />,
@@ -63,6 +69,10 @@ const router = createHashRouter([
           {
             path: 'file',
             element: <File />
+          },
+          {
+            path: 'whisper',
+            element: <Whisper />
           }
         ]
       }

@@ -63,11 +63,12 @@ declare global {
       setAudioTags: (options: SetAduioTagOptions, id?: number) => Promise<void>
     }
     whisper: {
+      getWhisperModelDir: () => Promise<string>
+      getDownloadModelList: () => Promise<WhisperModelType[]>
       audioRecognize: (options: AudioRecognizeOptions, id?: number) => Promise<void>
       checkModel: (model: WhisperModelType) => Promise<boolean>
       downloadModel: (model: WhisperModelType) => Promise<string>
       onDownloadProgress: (callback: (progress: WhisperDownloadProgress) => void) => () => void
-      getWhisperModelDir: () => Promise<string>
       onRecognize: (callback: (text: string) => void) => () => void
       startRecognize: (options: StartRecognizeOptions) => Promise<void>
       stopRecognize: () => Promise<void>

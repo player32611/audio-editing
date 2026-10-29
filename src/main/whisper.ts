@@ -21,7 +21,8 @@ import {
   AUDIO_CODEC,
   WHSIPER_STREAM_MODE,
   REGEX,
-  WHISPER_STREAM_BLOCK_WORD
+  WHISPER_STREAM_BLOCK_WORD,
+  WHISPER_MODEL_TYPE
 } from '../shared/constants'
 import { cutAudio } from './ffmpeg'
 
@@ -266,6 +267,18 @@ const runWhisperCli = (
   })
 }
 
+ipcMain.handle('whisper:getWhisperModelDir', () => {
+  return getWhisperModelDir()
+})
+
+ipcMain.handle('whisper:getDownloadModelList', () => {
+  const list: WhisperModelType[] = []
+  Object.values(WHISPER_MODEL_TYPE).forEach((type) => {
+    if (existsSync(getWhisperModelPath(type))) list.push(type)
+  })
+  return list
+})
+
 ipcMain.handle('whisper:checkModel', (_, model: WhisperModelType): boolean => {
   if (existsSync(getWhisperModelPath(model))) return true
   return false
@@ -313,10 +326,6 @@ ipcMain.handle(
       })
   }
 )
-
-ipcMain.handle('whisper:getWhisperModelDir', () => {
-  return getWhisperModelDir()
-})
 
 ipcMain.handle('whisper:startRecognize', (event, options: StartRecognizeOptions): Promise<void> => {
   const binary = getWhisperStreamBinaryPath()
