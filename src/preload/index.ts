@@ -33,7 +33,8 @@ const api = {
   openExternal: (url: string) => ipcRenderer.invoke('api:openExternal', url),
   copyFile: (source: string, target: string) => ipcRenderer.invoke('api:copyFile', source, target),
   writeFile: (filePath: string, content: string, id?: number) =>
-    ipcRenderer.invoke('api:writeFile', filePath, content, id)
+    ipcRenderer.invoke('api:writeFile', filePath, content, id),
+  getGPUInfo: (infoType: 'basic' | 'complete') => ipcRenderer.invoke('api:getGPUInfo', infoType)
 }
 
 const theme = {

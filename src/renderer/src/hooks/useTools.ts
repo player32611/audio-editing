@@ -70,6 +70,7 @@ interface SpeechRecognizeParams {
   model: WhisperModelType
   prompt: string
   translate: boolean
+  useGPU: boolean
 }
 
 interface ImportModelParams {

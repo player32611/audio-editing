@@ -12,7 +12,8 @@ import {
   FloatButton,
   type FormProps,
   Switch,
-  Space
+  Space,
+  Collapse
 } from 'antd'
 import { LeftOutlined, FolderOpenOutlined, ExclamationCircleOutlined } from '@ant-design/icons'
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
@@ -40,6 +41,7 @@ interface FieldType {
   model: WhisperModelType
   prompt: string
   translate: boolean
+  useGPU: boolean
 }
 
 const { Text } = Typography
@@ -229,6 +231,22 @@ export default function SpeechRecognition(): ReactNode {
 
         <Form.Item<FieldType> name="translate" label="翻译为英文" initialValue={false}>
           <Switch />
+        </Form.Item>
+
+        <Form.Item label="高级设置">
+          <Collapse
+            size="small"
+
+            items={[
+              {
+                children: (
+                  <Form.Item<FieldType> name="useGPU" label="启用 GPU" initialValue={true}>
+                    <Switch />
+                  </Form.Item>
+                )
+              }
+            ]}
+          />
         </Form.Item>
 
         <Form.Item wrapperCol={{ span: 24 }}>

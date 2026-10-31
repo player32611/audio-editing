@@ -13,7 +13,9 @@ import {
   Radio,
   Flex,
   Card,
-  type InputRef
+  type InputRef,
+  Collapse,
+  Switch
 } from 'antd'
 import { LeftOutlined, FolderOpenOutlined, ExclamationCircleOutlined } from '@ant-design/icons'
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
@@ -40,6 +42,7 @@ interface FieldType {
   language: Language
   model: WhisperModelType
   recognizeMode: WhisperStreamMode
+  useGPU: boolean
 }
 
 export default function RealtimeRecognition(): ReactNode {
@@ -82,6 +85,7 @@ export default function RealtimeRecognition(): ReactNode {
         model: params.model,
         language: params.language,
         recognizeMode: params.recognizeMode,
+        useGPU: params.useGPU,
         onRecognize: (text) => {
           if (params.recognizeMode === WHSIPER_STREAM_MODE.CONTINUOUS) {
             const content: string = form.getFieldValue('recognizeContent')
@@ -247,6 +251,22 @@ export default function RealtimeRecognition(): ReactNode {
               </Radio.Button>
             ))}
           </Radio.Group>
+        </Form.Item>
+
+        <Form.Item label="高级设置">
+          <Collapse
+            size="small"
+
+            items={[
+              {
+                children: (
+                  <Form.Item<FieldType> name="useGPU" label="启用 GPU" initialValue={false}>
+                    <Switch />
+                  </Form.Item>
+                )
+              }
+            ]}
+          />
         </Form.Item>
 
         <Form.Item wrapperCol={{ span: 24 }}>

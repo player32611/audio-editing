@@ -36,6 +36,23 @@ export type WorkStatus = '待处理' | '处理中' | '已完成' | '已中断'
 
 export type WorkType = '音频编辑' | '音频提取' | '音频裁剪' | '语音识别' | '实时识别'
 
+export interface GPUDeviceInfo {
+  active: boolean
+  deviceId: number
+  deviceString: string
+  driverVendor: string
+  driverVersion: string
+  gpuPreference: number
+  revision: number
+  subSysId: number
+  vendorId: number
+}
+
+export interface GPUInfo {
+  gpuDevice: GPUDeviceInfo[]
+  auxAttributes: unknown
+}
+
 export interface FileInfo {
   name: string
   ext: string
@@ -126,6 +143,7 @@ export interface AudioRecognizeOptions {
   model: WhisperModelType
   prompt: string
   translate: boolean
+  useGPU: boolean
 }
 
 export interface WhisperDownloadProgress {
@@ -139,4 +157,5 @@ export interface StartRecognizeOptions {
   model: WhisperModelType
   language: Language
   recognizeMode: WhisperStreamMode
+  useGPU: boolean
 }

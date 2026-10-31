@@ -14,6 +14,11 @@ export const getBreadcrumb = (url: string): { title: string }[] => {
       case 'whisper':
         res.push({ title: '系统' })
         res.push({ title: '识别模型' })
+        break
+      case 'gpu':
+        res.push({ title: '系统' })
+        res.push({ title: 'GPU' })
+        break
     }
   })
   return res

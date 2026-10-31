@@ -183,8 +183,9 @@ const buildArgs = (options: AudioRecognizeOptions, wavPath: string): string[] =>
     WHISPER_CLI_OUTPUT_FLAG[options.outputExtension.toUpperCase()],
     '-pp'
   ]
-  if (options.translate) args.push('-tr')
   if (options.prompt) args.push('--prompt', options.prompt)
+  if (options.translate) args.push('-tr')
+  if (!options.useGPU) args.push('--no-gpu')
   return args
 }
 
@@ -206,6 +207,7 @@ const buildStreamArgs = (options: StartRecognizeOptions): string[] => {
   }
   args.push('--threads', '8')
   args.push('-vth', '0.6')
+  if (!options.useGPU) args.push('--no-gpu')
   return args
 }
 

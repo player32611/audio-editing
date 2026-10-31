@@ -14,6 +14,7 @@ import ImportModel from '@renderer/pages/Workspace/ImportModel'
 import RealtimeRecognition from '@renderer/pages/Workspace/RealtimeRecognition'
 import Home from '@renderer/pages/Home'
 import Whisper from '@renderer/pages/Settings/Systems/Whisper'
+import Gpu from '@renderer/pages/Settings/Systems/Gpu'
 
 const router = createHashRouter([
   {
@@ -73,6 +74,10 @@ const router = createHashRouter([
           {
             path: 'whisper',
             element: <Whisper />
+          },
+          {
+            path: 'gpu',
+            element: <Gpu />
           }
         ]
       }

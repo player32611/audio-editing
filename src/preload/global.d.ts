@@ -16,7 +16,8 @@ import type {
   AudioRecognizeOptions,
   WhisperModelType,
   WorkListItem,
-  StartRecognizeOptions
+  StartRecognizeOptions,
+  GPUInfo
 } from '../shared/type'
 import type { GetVoiceOptions } from '@sellmind/video-editor-core'
 import type { OpenDialogOptions } from 'electron'
@@ -41,6 +42,7 @@ declare global {
       openExternal: (url: string) => Promise<void>
       copyFile: (source: string, target: string) => Promise<void>
       writeFile: (filePath: string, content: string, id?: number) => Promise<void>
+      getGPUInfo: (infoType: 'basic' | 'complete') => Promise<GPUInfo>
     }
     theme: {
       set: (theme: Theme) => Promise<Theme>
