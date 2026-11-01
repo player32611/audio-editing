@@ -79,6 +79,7 @@ declare global {
       selectAll: (database: Database) => Promise<StatusTable[]>
       selectStatus: (name: WorkStatus) => Promise<number>
       selectType: (name: WorkType) => Promise<number>
+      selectWorkHistoryByTime: (startTime: Date, endTime: Date) => Promise<WorkHistoryTable[]>
       selectWorkHistoryUnion: () => Promise<WorkHistoryUnion[]>
       insertWorkHistory: (data: WorkHistoryInsert) => Promise<number>
       updateWorkHistory: (id: number, data: Partial<Omit<WorkHistoryTable, 'id'>>) => Promise<void>

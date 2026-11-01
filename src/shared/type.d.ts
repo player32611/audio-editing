@@ -143,6 +143,7 @@ export interface AudioRecognizeOptions {
   model: WhisperModelType
   prompt: string
   translate: boolean
+  CPUthreads: number
   useGPU: boolean
 }
 
@@ -157,5 +158,6 @@ export interface StartRecognizeOptions {
   model: WhisperModelType
   language: Language
   recognizeMode: WhisperStreamMode
+  CPUthreads: number
   useGPU: boolean
 }

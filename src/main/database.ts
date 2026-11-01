@@ -184,6 +184,26 @@ export const selectWorkHistoryByStatus = (status_id: number): WorkHistoryTable[]
     .all(status_id) as WorkHistoryTable[]
 }
 
+export const selectWorkHistoryByTime = (startTime: Date, endTime: Date): WorkHistoryTable[] => {
+  const format = (date: Date): string => {
+    const pad = (num: number): string => String(num).padStart(2, '0')
+
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+  }
+
+  if (!db) throw new Error('数据库尚未初始化')
+
+  console.log(format(startTime), format(endTime))
+
+  return db
+    .prepare(
+      `
+        SELECT * FROM work_history WHERE time >= ? AND time < ?
+      `
+    )
+    .all(format(startTime), format(endTime)) as WorkHistoryTable[]
+}
+
 export const selectWorkHistoryUnion = (): WorkHistoryUnion[] => {
   if (!db) throw new Error('数据库尚未初始化')
 
@@ -273,6 +293,10 @@ ipcMain.handle('database:selectStatus', (_, name: WorkStatus): number => {
 
 ipcMain.handle('database:selectType', (_, name: WorkType): number => {
   return selectType(name)
+})
+
+ipcMain.handle('database:selectWorkHistoryByTime', (_, startTime: Date, endTime: Date) => {
+  return selectWorkHistoryByTime(startTime, endTime)
 })
 
 ipcMain.handle('database:selectWorkHistoryUnion', (): WorkHistoryUnion[] => {

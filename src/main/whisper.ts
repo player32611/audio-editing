@@ -178,6 +178,8 @@ const buildArgs = (options: AudioRecognizeOptions, wavPath: string): string[] =>
     getWhisperModelPath(options.model),
     '--language',
     options.language,
+    '--threads',
+    options.CPUthreads,
     '-of',
     options.outputFileWithoutExt,
     WHISPER_CLI_OUTPUT_FLAG[options.outputExtension.toUpperCase()],
@@ -195,7 +197,9 @@ const buildStreamArgs = (options: StartRecognizeOptions): string[] => {
     '--model',
     getWhisperModelPath(options.model),
     '--language',
-    options.language ?? 'auto'
+    options.language ?? 'auto',
+    '--threads',
+    options.CPUthreads.toString()
   ]
 
   if (options.recognizeMode === WHSIPER_STREAM_MODE.VAD) {
@@ -205,7 +209,6 @@ const buildStreamArgs = (options: StartRecognizeOptions): string[] => {
     args.push('--step', '500')
     args.push('--length', '5000')
   }
-  args.push('--threads', '8')
   args.push('-vth', '0.6')
   if (!options.useGPU) args.push('--no-gpu')
   return args

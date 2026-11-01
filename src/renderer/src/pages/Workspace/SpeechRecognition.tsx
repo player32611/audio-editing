@@ -13,7 +13,8 @@ import {
   type FormProps,
   Switch,
   Space,
-  Collapse
+  Collapse,
+  InputNumber
 } from 'antd'
 import { LeftOutlined, FolderOpenOutlined, ExclamationCircleOutlined } from '@ant-design/icons'
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
@@ -41,6 +42,7 @@ interface FieldType {
   model: WhisperModelType
   prompt: string
   translate: boolean
+  CPUthreads: number
   useGPU: boolean
 }
 
@@ -240,9 +242,20 @@ export default function SpeechRecognition(): ReactNode {
             items={[
               {
                 children: (
-                  <Form.Item<FieldType> name="useGPU" label="启用 GPU" initialValue={true}>
-                    <Switch />
-                  </Form.Item>
+                  <>
+                    <Form.Item<FieldType> name="useGPU" label="启用 GPU" initialValue={true}>
+                      <Switch />
+                    </Form.Item>
+
+                    <Form.Item<FieldType>
+                      name="CPUthreads"
+                      label="CPU 使用线程数"
+                      initialValue={4}
+                      required
+                    >
+                      <InputNumber min={1} max={16} />
+                    </Form.Item>
+                  </>
                 )
               }
             ]}

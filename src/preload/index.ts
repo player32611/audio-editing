@@ -98,6 +98,8 @@ const database = {
   selectAll: (database: Database) => ipcRenderer.invoke('database:selectAll', database),
   selectStatus: (name: WorkStatus) => ipcRenderer.invoke('database:selectStatus', name),
   selectType: (name: WorkType) => ipcRenderer.invoke('database:selectType', name),
+  selectWorkHistoryByTime: (startTime: Date, endTime: Date) =>
+    ipcRenderer.invoke('database:selectWorkHistoryByTime', startTime, endTime),
   selectWorkHistoryUnion: () => ipcRenderer.invoke('database:selectWorkHistoryUnion'),
   insertWorkHistory: (data: WorkHistoryInsert) =>
     ipcRenderer.invoke('database:insertWorkHistory', data),

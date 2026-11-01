@@ -15,7 +15,8 @@ import {
   Card,
   type InputRef,
   Collapse,
-  Switch
+  Switch,
+  InputNumber
 } from 'antd'
 import { LeftOutlined, FolderOpenOutlined, ExclamationCircleOutlined } from '@ant-design/icons'
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
@@ -42,6 +43,7 @@ interface FieldType {
   language: Language
   model: WhisperModelType
   recognizeMode: WhisperStreamMode
+  CPUthreads: number
   useGPU: boolean
 }
 
@@ -85,6 +87,7 @@ export default function RealtimeRecognition(): ReactNode {
         model: params.model,
         language: params.language,
         recognizeMode: params.recognizeMode,
+        CPUthreads: params.CPUthreads,
         useGPU: params.useGPU,
         onRecognize: (text) => {
           if (params.recognizeMode === WHSIPER_STREAM_MODE.CONTINUOUS) {
@@ -260,9 +263,20 @@ export default function RealtimeRecognition(): ReactNode {
             items={[
               {
                 children: (
-                  <Form.Item<FieldType> name="useGPU" label="启用 GPU" initialValue={false}>
-                    <Switch />
-                  </Form.Item>
+                  <>
+                    <Form.Item<FieldType>
+                      name="CPUthreads"
+                      label="CPU 使用线程数"
+                      initialValue={4}
+                      required
+                    >
+                      <InputNumber min={1} max={16} />
+                    </Form.Item>
+
+                    <Form.Item<FieldType> name="useGPU" label="启用 GPU" initialValue={false}>
+                      <Switch />
+                    </Form.Item>
+                  </>
                 )
               }
             ]}
