@@ -193,8 +193,6 @@ export const selectWorkHistoryByTime = (startTime: Date, endTime: Date): WorkHis
 
   if (!db) throw new Error('数据库尚未初始化')
 
-  console.log(format(startTime), format(endTime))
-
   return db
     .prepare(
       `

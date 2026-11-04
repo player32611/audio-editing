@@ -1,4 +1,5 @@
-import { App } from 'antd'
+import { App, Button, Flex } from 'antd'
+import { CloseOutlined } from '@ant-design/icons'
 import { useCallback, useRef } from 'react'
 import type {
   AudioFileExtension,
@@ -152,56 +153,6 @@ export function useTools(): useToolsData {
     [message]
   )
 
-  const downloadModel = useCallback(
-    async (model: WhisperModelType) => {
-      const existModel = await window.whisper.checkModel(model)
-      if (existModel) return true
-      const ifDownload = await modal.confirm({
-        title: '模型未下载',
-        content: '当前选择模型暂未下载，是否先下载模型？',
-        okText: '下载'
-      })
-      if (!ifDownload) return false
-
-      message.open({
-        key: KEY.MESSAGE,
-        type: 'loading',
-        content: '正在下载模型 0.00%',
-        duration: 0
-      })
-      const unsubscribe = window.whisper.onDownloadProgress((progress) => {
-        message.open({
-          key: KEY.MESSAGE,
-          type: 'loading',
-          content: `正在下载模型 ${(progress.percent * 100).toFixed(2)}%`,
-          duration: 0
-        })
-      })
-      try {
-        await window.whisper.downloadModel(model)
-        message.open({
-          key: KEY.MESSAGE,
-          type: 'success',
-          content: '模型下载成功',
-          duration: 3
-        })
-        return true
-      } catch (err) {
-        console.log(err)
-        message.open({
-          key: KEY.MESSAGE,
-          type: 'error',
-          content: `模型下载失败: ${err}`,
-          duration: 3
-        })
-        return false
-      } finally {
-        unsubscribe()
-      }
-    },
-    [message, modal]
-  )
-
   const onBegin = useCallback(
     async (id: number) => {
       await window.work.set(id, { status: '处理中', progress: 0 })
@@ -252,6 +203,75 @@ export function useTools(): useToolsData {
       })
     },
     [message]
+  )
+
+  const downloadModel = useCallback(
+    async (model: WhisperModelType) => {
+      const handleStop = (): void => {
+        window.whisper.stopDownloadModel()
+        message.destroy(KEY.MESSAGE)
+      }
+
+      const existModel = await window.whisper.checkModel(model)
+      if (existModel) return true
+      const ifDownload = await modal.confirm({
+        title: '模型未下载',
+        content: '当前选择模型暂未下载，是否先下载模型？',
+        okText: '下载'
+      })
+      if (!ifDownload) return false
+
+      message.open({
+        key: KEY.MESSAGE,
+        type: 'loading',
+        content: (
+          <Flex align="center">
+            <div>正在下载模型 0.00%</div>
+            <Button
+              shape="circle"
+              color="default"
+              variant="link"
+              icon={<CloseOutlined />}
+              onClick={handleStop}
+            ></Button>
+          </Flex>
+        ),
+        duration: 0
+      })
+      const unsubscribe = window.whisper.onDownloadProgress((progress) => {
+        message.open({
+          key: KEY.MESSAGE,
+          type: 'loading',
+          content: (
+            <Flex align="center">
+              <div>正在下载模型 {(progress.percent * 100).toFixed(2)}%</div>
+              <Button
+                shape="circle"
+                color="default"
+                variant="link"
+                icon={<CloseOutlined />}
+                onClick={handleStop}
+              ></Button>
+            </Flex>
+          ),
+          duration: 0
+        })
+      })
+      const res = await window.whisper
+        .downloadModel(model)
+        .then(() => {
+          return true
+        })
+        .catch((err) => {
+          onError(null, err)
+          return false
+        })
+        .finally(() => {
+          unsubscribe()
+        })
+      return res
+    },
+    [message, modal, onError]
   )
 
   const getVoice = useCallback(

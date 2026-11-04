@@ -4,7 +4,7 @@ import ffmpegInstaller from '@ffmpeg-installer/ffmpeg'
 import ffprobeInstaller from '@ffprobe-installer/ffprobe'
 import Ffmpeg from 'fluent-ffmpeg'
 import { parseFilePath } from './api'
-import { AUDIO_FILE_EXTENSION, SINGAL } from '../shared/constants'
+import { AUDIO_FILE_EXTENSION } from '../shared/constants'
 import { getCodec, getFormat } from '../shared/utils'
 import { setInstanceList, setWorkList } from './work'
 import type { CutAudioOptions, GetVoiceOptions, SetAduioTagOptions } from '../shared/type'
@@ -39,7 +39,6 @@ export const setupFfmpeg = (): void => {
 
 export const cutAudio = (options: CutAudioOptions, id?: number): Promise<void> => {
   return new Promise<void>((reslove, reject) => {
-    let cancelled = false
     const work = Ffmpeg(options.inputAudio)
 
     if (options.audioExtension)
@@ -54,7 +53,7 @@ export const cutAudio = (options: CutAudioOptions, id?: number): Promise<void> =
 
     work
       .on('error', (err) => {
-        reject(cancelled ? new Error(SINGAL.SIGKILL) : err)
+        reject(err)
       })
       .on('end', () => {
         reslove()
@@ -63,12 +62,7 @@ export const cutAudio = (options: CutAudioOptions, id?: number): Promise<void> =
     if (id) {
       work
         .on('start', () => {
-          setInstanceList(id, {
-            kill: (signal?: string | number) => {
-              cancelled = true
-              work.kill(signal ? String(signal) : SINGAL.SIGKILL)
-            }
-          })
+          setInstanceList(id, work)
         })
         .on('progress', (progress) => {
           setWorkList(id, { progress: progress.percent })

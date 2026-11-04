@@ -76,6 +76,7 @@ const whisper = {
     ipcRenderer.invoke('whisper:audioRecognize', options, id),
   checkModel: (model: WhisperModelType) => ipcRenderer.invoke('whisper:checkModel', model),
   downloadModel: (model: WhisperModelType) => ipcRenderer.invoke('whisper:downloadModel', model),
+  stopDownloadModel: () => ipcRenderer.invoke('whisper:stopDownloadModel'),
   onDownloadProgress: (callback: (progress: WhisperDownloadProgress) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, progress: WhisperDownloadProgress): void =>
       callback(progress)

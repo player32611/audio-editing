@@ -70,6 +70,7 @@ declare global {
       audioRecognize: (options: AudioRecognizeOptions, id?: number) => Promise<void>
       checkModel: (model: WhisperModelType) => Promise<boolean>
       downloadModel: (model: WhisperModelType) => Promise<string>
+      stopDownloadModel: () => Promise<void>
       onDownloadProgress: (callback: (progress: WhisperDownloadProgress) => void) => () => void
       onRecognize: (callback: (text: string) => void) => () => void
       startRecognize: (options: StartRecognizeOptions) => Promise<void>

@@ -29,6 +29,9 @@ import { cutAudio } from './ffmpeg'
 /** 当前进行中的 whisper-stream 进程（同一时刻只允许一个） */
 let streamProcess: ChildProcess | null = null
 
+/** 当前进行中的模型下载任务（同一时刻只允许一个） */
+let downloadController: AbortController | null = null
+
 /**
  * 集成 whisper.cpp（与内置 FFmpeg 同一模式）：
  * - 二进制：生产环境随应用分发（electron-builder extraResources 复制到
@@ -83,21 +86,19 @@ async function downloadFrom(
   model: WhisperModelType,
   baseUrl: string,
   tmpPath: string,
-  onProgress?: (progress: WhisperDownloadProgress) => void
+  onProgress?: (progress: WhisperDownloadProgress) => void,
+  signal?: AbortSignal
 ): Promise<void> {
   const res = await fetch(`${baseUrl}/${WHISPER_MODEL_NAME[model.toUpperCase()]}`, {
-    redirect: 'follow'
+    redirect: 'follow',
+    signal
   })
 
-  if (!res.ok || !res.body) {
-    throw new Error(`HTTP ${res.status}`)
-  }
+  if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`)
 
   // 镜像/网关可能对 404 返回 HTML 页面且 status 200，按 content-type 拦截
   const contentType = res.headers.get('content-type') || ''
-  if (contentType.includes('text/html')) {
-    throw new Error('返回 HTML 页面，疑似未命中模型')
-  }
+  if (contentType.includes('text/html')) throw new Error('返回 HTML 页面，疑似未命中模型')
 
   const total = Number(res.headers.get('content-length') || 0)
   let loaded = 0
@@ -133,9 +134,7 @@ async function downloadFrom(
   }
 
   // content-length 已知时校验完整性，防止把中断的半成品当成品
-  if (total > 0 && loaded < total) {
-    throw new Error(`下载不完整：${loaded}/${total} 字节`)
-  }
+  if (total > 0 && loaded < total) throw new Error(`下载不完整：${loaded}/${total} 字节`)
 }
 
 /**
@@ -149,24 +148,38 @@ export async function downloadModel(
   const modelPath = getWhisperModelPath(model)
   if (existsSync(modelPath)) return modelPath
 
+  // 开始新下载前先停掉仍在进行的旧任务（同一时刻只允许一个）
+  downloadController?.abort()
+
   const dir = getWhisperModelDir()
   await mkdir(dir, { recursive: true })
 
   const tmpPath = join(dir, `${WHISPER_MODEL_NAME[model.toUpperCase()]}.part`)
   const errors: string[] = []
+  const controller = new AbortController()
+  downloadController = controller
 
-  for (const baseUrl of WHISPER_MODEL_SOURCES) {
-    try {
-      await downloadFrom(model, baseUrl, tmpPath, onProgress)
-      await rename(tmpPath, modelPath)
-      return modelPath
-    } catch (err) {
-      errors.push(`${baseUrl} -> ${err instanceof Error ? err.message : String(err)}`)
-      await rm(tmpPath, { force: true })
+  try {
+    for (const baseUrl of WHISPER_MODEL_SOURCES) {
+      try {
+        await downloadFrom(model, baseUrl, tmpPath, onProgress, controller.signal)
+        await rename(tmpPath, modelPath)
+        return modelPath
+      } catch (err) {
+        // 用户主动停止时清理半成品临时文件，并以 SIGKILL 标记（与 ffmpeg 停止约定一致）
+        if (controller.signal.aborted) {
+          await rm(tmpPath, { force: true })
+          throw new Error(SINGAL.SIGKILL)
+        }
+        errors.push(`${baseUrl} -> ${err instanceof Error ? err.message : String(err)}`)
+        await rm(tmpPath, { force: true })
+      }
     }
-  }
 
-  throw new Error(`模型下载失败，已尝试全部源：\n${errors.join('\n')}`)
+    throw new Error(`模型下载失败，已尝试全部源：\n${errors.join('\n')}`)
+  } finally {
+    if (downloadController === controller) downloadController = null
+  }
 }
 
 /** 构建 whisper-cli 参数 */
@@ -293,6 +306,10 @@ ipcMain.handle('whisper:downloadModel', (event, model: WhisperModelType): Promis
   return downloadModel(model, (progress) => {
     event.sender.send('whisper:downloadProgress', progress)
   })
+})
+
+ipcMain.handle('whisper:stopDownloadModel', () => {
+  downloadController?.abort()
 })
 
 ipcMain.handle(

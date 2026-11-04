@@ -1,4 +1,4 @@
-import { SnippetsOutlined } from '@ant-design/icons'
+import { SnippetsOutlined, FieldTimeOutlined } from '@ant-design/icons'
 import { Col, Divider, Row, Space, Statistic } from 'antd'
 import { ReactNode, useEffect, useRef, useState } from 'react'
 import dayjs from 'dayjs'
@@ -45,6 +45,7 @@ export default function Home(): ReactNode {
         <Col span={12}>
           <Statistic
             title="当前时间"
+            prefix={<FieldTimeOutlined />}
             value={currentTime.getTime()}
             formatter={() => dayjs(currentTime).format('HH:mm:ss')}
             loading={isLoading}
