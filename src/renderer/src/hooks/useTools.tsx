@@ -118,7 +118,7 @@ export function useTools(): useToolsData {
             return false
           }
         } else if (params.inputExtension && typeof params.inputExtension === 'string') {
-          if (inputInfo.ext === params.inputExtension) {
+          if (inputInfo.ext !== params.inputExtension) {
             openMessage('文件格式有误，请检查后重试')
             return false
           }
@@ -209,7 +209,7 @@ export function useTools(): useToolsData {
     async (model: WhisperModelType) => {
       const handleStop = (): void => {
         window.whisper.stopDownloadModel()
-        message.destroy(KEY.MESSAGE)
+        message.destroy(KEY.LOADING)
       }
 
       const existModel = await window.whisper.checkModel(model)
@@ -222,7 +222,7 @@ export function useTools(): useToolsData {
       if (!ifDownload) return false
 
       message.open({
-        key: KEY.MESSAGE,
+        key: KEY.LOADING,
         type: 'loading',
         content: (
           <Flex align="center">
@@ -240,7 +240,7 @@ export function useTools(): useToolsData {
       })
       const unsubscribe = window.whisper.onDownloadProgress((progress) => {
         message.open({
-          key: KEY.MESSAGE,
+          key: KEY.LOADING,
           type: 'loading',
           content: (
             <Flex align="center">
