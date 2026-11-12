@@ -1,7 +1,7 @@
 import { shell, ipcMain, dialog, OpenDialogOptions, app } from 'electron'
 import { copyFile, createWriteStream, existsSync, unlink } from 'fs'
 import { join, basename, extname, dirname } from 'path'
-import { readFile } from 'fs/promises'
+import { mkdir, readFile } from 'fs/promises'
 import { setInstanceList } from './work'
 import type { FileInfo } from '../shared/type'
 
@@ -125,4 +125,10 @@ ipcMain.handle('api:writeFile', (_, filePath: string, content: string, id?: numb
 
 ipcMain.handle('api:getGPUInfo', (_, infoType: 'basic' | 'complete') => {
   return app.getGPUInfo(infoType)
+})
+
+ipcMain.handle('api:createDir', (_, path: string) => {
+  if (existsSync(path)) return
+
+  return mkdir(path, { recursive: true })
 })

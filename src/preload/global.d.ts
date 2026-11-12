@@ -43,6 +43,7 @@ declare global {
       copyFile: (source: string, target: string) => Promise<void>
       writeFile: (filePath: string, content: string, id?: number) => Promise<void>
       getGPUInfo: (infoType: 'basic' | 'complete') => Promise<GPUInfo>
+      createDir: (path: string) => Promise<void>
     }
     theme: {
       set: (theme: Theme) => Promise<Theme>

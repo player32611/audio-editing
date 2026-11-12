@@ -34,7 +34,8 @@ const api = {
   copyFile: (source: string, target: string) => ipcRenderer.invoke('api:copyFile', source, target),
   writeFile: (filePath: string, content: string, id?: number) =>
     ipcRenderer.invoke('api:writeFile', filePath, content, id),
-  getGPUInfo: (infoType: 'basic' | 'complete') => ipcRenderer.invoke('api:getGPUInfo', infoType)
+  getGPUInfo: (infoType: 'basic' | 'complete') => ipcRenderer.invoke('api:getGPUInfo', infoType),
+  createDir: (path: string) => ipcRenderer.invoke('api:createDir', path)
 }
 
 const theme = {

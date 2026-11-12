@@ -434,6 +434,9 @@ export function useTools(): useToolsData {
         if (!isConfirm) return
       }
 
+      if (!(await window.api.existsSync(modelDir))) {
+        await window.api.createDir(modelDir)
+      }
       await window.api
         .copyFile(params.inputFile, modelPath)
         .then(() => {
