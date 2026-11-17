@@ -1,7 +1,7 @@
 {
   "name": "audio-editing",
-  "version": "2.3.5",
-  "description": "An Electron application with React and TypeScript",
+  "version": "2.3.6",
+  "description": "音视频编辑软件",
   "main": "./out/main/index.js",
   "author": "player32611",
   "homepage": "https://electron-vite.org",

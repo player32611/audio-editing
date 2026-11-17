@@ -59,22 +59,36 @@ export function getWhisperModelPath(model: WhisperModelType): string {
 }
 
 /**
+ * whisper 二进制目录：
+ * - useGPU 为 true 时用 Vulkan 版（resources/whisper/，含 ggml-vulkan.dll）
+ * - useGPU 为 false 时用 CPU 版（resources/whisper-cpu/，不含 ggml-vulkan.dll）
+ *
+ * 之所以按目录而非仅靠 --no-gpu 区分：whisper.cpp 以 GGML_BACKEND_DL 动态加载后端，
+ * 启动时会无条件扫描 exe 同目录下的 ggml-vulkan.dll 并加载；在部分低端/混合显卡
+ * （如 NVIDIA T400）上该加载过程本身就会访问违例崩溃（退出码 0xC0000005），且发生在
+ * “是否使用 GPU”的判断之前。因此 CPU 模式必须让 exe 所在目录里不存在该 DLL。
+ */
+function getWhisperBinDir(useGPU: boolean): string {
+  return join(app.getAppPath(), 'resources', useGPU ? 'whisper' : 'whisper-cpu')
+}
+
+/**
  * 解析 whisper-cli 二进制路径：
  * - 环境变量 WHISPER_PATH 优先（开发 / 调试）
- * - 开发环境：项目 resources/whisper/
+ * - 开发环境：项目 resources/whisper/（GPU）或 resources/whisper-cpu/（CPU）
  * - 打包后：二进制位于 app.asar 内，由 asarUnpack 解包到 app.asar.unpacked，
  *   需从解包副本启动（与内置 FFmpeg 同一模式）
  */
-export function getWhisperBinaryPath(): string {
+export function getWhisperBinaryPath(useGPU: boolean): string {
   if (process.env.WHISPER_PATH) return process.env.WHISPER_PATH
-  const binaryPath = join(app.getAppPath(), 'resources', 'whisper', WHISPER_BINARY_NAME)
+  const binaryPath = join(getWhisperBinDir(useGPU), WHISPER_BINARY_NAME)
   return app.isPackaged ? binaryPath.replace('app.asar', 'app.asar.unpacked') : binaryPath
 }
 
 /** 解析 whisper-stream 二进制路径（与 whisper-cli 同一目录，WHISPER_STREAM_PATH 优先） */
-function getWhisperStreamBinaryPath(): string {
+function getWhisperStreamBinaryPath(useGPU: boolean): string {
   if (process.env.WHISPER_STREAM_PATH) return process.env.WHISPER_STREAM_PATH
-  const binaryPath = join(app.getAppPath(), 'resources', 'whisper', WHISPER_STREAM_BINARY_NAME)
+  const binaryPath = join(getWhisperBinDir(useGPU), WHISPER_STREAM_BINARY_NAME)
   return app.isPackaged ? binaryPath.replace('app.asar', 'app.asar.unpacked') : binaryPath
 }
 
@@ -315,7 +329,7 @@ ipcMain.handle('whisper:stopDownloadModel', () => {
 ipcMain.handle(
   'whisper:audioRecognize',
   async (_, options: AudioRecognizeOptions, id?: number): Promise<void> => {
-    const binary = getWhisperBinaryPath()
+    const binary = getWhisperBinaryPath(options.useGPU)
     const model = getWhisperModelPath(options.model)
 
     if (!existsSync(binary)) throw new Error(`whisper.cpp 二进制未找到：${binary}`)
@@ -350,7 +364,7 @@ ipcMain.handle(
 )
 
 ipcMain.handle('whisper:startRecognize', (event, options: StartRecognizeOptions): Promise<void> => {
-  const binary = getWhisperStreamBinaryPath()
+  const binary = getWhisperStreamBinaryPath(options.useGPU)
   const model = getWhisperModelPath(options.model)
 
   if (!existsSync(binary))
